@@ -17,13 +17,21 @@ data Game = Game {
                 _ghosts :: [Creature]
             }
 
+data TimeDirection = Normal | Rewind
+
+data TimeGame = TimeGame {
+				_states :: [Game],
+				_timeDirection :: TimeDirection,
+				_playerIntention :: Coord
+			}
+
 data Creature = Creature {
                 _coords :: Coord,
                 _direction :: Coord,
                 _intention :: Coord
             }
 
-$( makeLenses [''Game, ''Creature] )    
+$( makeLenses [''TimeGame, ''Game, ''Creature] )    
 
 cellSize, levelW, levelH :: Int
 cellSize = 16
@@ -47,9 +55,14 @@ loadGame = do
                       | (y, line) <- zip levelHC $ lines levelData
                       , (x, v) <- zip levelWC line]
 
-  return Game { 
-    _player = makeCreature 1 1,
-    _ghosts = [makeCreature 17 1, makeCreature 1 33, makeCreature 17 25, makeCreature 21 19],
-    _walls = array ((0,0),(levelW-1, levelH-1)) $ map (\(c, b) -> (c, b == Wall)) level,
-    _food = Set.fromList $ map fst $ filter (\(_, b) -> b == Food) level
-  }
+      initGame = Game { 
+        _player = makeCreature 1 1,
+        _ghosts = [makeCreature 17 1, makeCreature 1 33, makeCreature 17 25, makeCreature 21 19],
+        _walls = array ((0,0),(levelW-1, levelH-1)) $ map (\(c, b) -> (c, b == Wall)) level,
+        _food = Set.fromList $ map fst $ filter (\(_, b) -> b == Food) level
+      }
+  return TimeGame {
+        _states = [initGame],
+        _timeDirection = Normal,
+        _playerIntention = (0,0)
+      }

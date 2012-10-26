@@ -117,7 +117,7 @@ keyboardMouse _ gameEnv controlsHandler key state modifiers position = do
 data GameEnv gameState = GameEnv Int gameState
                deriving Show
  
-stepPeriod = 10
+stepPeriod = 6
 
 tick :: Int -> GameEnv gameState -> (gameState -> gameState) -> GameEnv gameState
 tick tnew (GameEnv 0 state) _ = GameEnv tnew state

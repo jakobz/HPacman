@@ -5,7 +5,7 @@ import Engine
 
 main = run $ newGame { 
               load = loadGame,
-              move = moveGame,
+              move = moveTimeGame,
               render = renderGame,
               handleInput = userAction
             }

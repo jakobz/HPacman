@@ -30,9 +30,10 @@ renderPlayer player@(Creature{_coords = coords, _direction = dir}) =
 renderGhost ghost@(Creature{_coords = coords, _direction = dir}) ghostN =
   renderCreature ("ghost_" ++ [getDirName dir]) coords (ghostsColors !! ghostN)
 
-renderGame state =
+renderGameSnapshot state =
     [spr backSpr 0 0]
     ++ [spr "point" (x*cellSize) (y*cellSize) | (x, y) <- Set.elems $ food ^$ state]
     ++ renderPlayer (player ^$ state) whiteColor
     ++ (concat $ zipWith renderGhost (ghosts ^$ state) [0..])
-    
+
+renderGame state = renderGameSnapshot $ head $ states ^$ state

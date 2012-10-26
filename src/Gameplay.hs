@@ -1,4 +1,4 @@
-module Gameplay (moveGame, userAction) where 
+module Gameplay (moveTimeGame, userAction) where 
 
 import GameState
 import Prelude hiding ((.), id)
@@ -102,18 +102,30 @@ moveGame state =
     $ state
 
 
--- AI
+moveTimeGame state = 
+	let
+		normal s = let currentState = (intention.player ^= (playerIntention ^$ state)) $ head s 
+				   in moveGame currentState : s
+		rewind s | length s > 2 = tail s
+				 | otherwise = s
+	in case timeDirection ^$ state of
+		Normal -> states ^%= normal $ state
+		Rewind -> states ^%= rewind $ state
+
 
 -- controls
+userAction (GL.Char ' ') GL.Down = timeDirection ^= Rewind
+userAction (GL.Char ' ') GL.Up = timeDirection ^= Normal
 
 userAction (GL.SpecialKey key) keyState = 
-    let updateX = setL (fstLens.intention.player) 
-        updateY = setL (sndLens.intention.player)
+    let updateX = setL (fstLens.playerIntention) 
+        updateY = setL (sndLens.playerIntention)
         (update, newVal) = case key of
                             GL.KeyLeft -> (updateX, -1)
                             GL.KeyRight -> (updateX, 1)
                             GL.KeyUp -> (updateY, -1)
                             GL.KeyDown -> (updateY, 1)
+                            _ -> (\_ -> id, 0)
     in case keyState of
           GL.Down -> update newVal
           GL.Up   -> update 0        
