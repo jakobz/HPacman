@@ -1,4 +1,4 @@
-module Engine (newGame, run, spr, load, move, render, handleInput) where
+module Engine (newGame, run, spr, sprEx, load, move, render, handleInput, sprOptions, color) where
 
 {-# OPTIONS -fglasgow-exts #-}
 import Data.IORef
@@ -24,9 +24,15 @@ newGame = Game {
         handleInput = \_ _ -> id
     }
 
-data SpriteInstance = SpriteInstance { name :: String, x :: Float, y :: Float }
+data SpriteOptions = SpriteOptions { color :: (Float, Float, Float) }
+sprOptions = SpriteOptions { color = (1, 1, 1)}
 
-spr name x y = SpriteInstance name (fromIntegral x) (fromIntegral y)
+data SpriteInstance = SpriteInstance { name :: String, x :: Float, y :: Float, options :: SpriteOptions }
+
+spr name x y = SpriteInstance name (fromIntegral x) (fromIntegral y) sprOptions
+
+sprEx name x y options = SpriteInstance name (fromIntegral x) (fromIntegral y) options
+
 
 --run :: [String] -> IO state -> (state -> state) -> (state -> [SpriteInstance]) -> IO()
 run game = do
@@ -55,7 +61,7 @@ display gameEnv sprites draw = do
     GL.blendFunc $= (GL.SrcAlpha, GL.OneMinusSrcAlpha)
     GL.blend $= GL.Enabled
  
-    GL.textureFunction $= GL.Replace
+    GL.textureFunction $= GL.Modulate
     GL.texture GL.Texture2D $= GL.Enabled
     GL.depthFunc $= Nothing
     GL.cullFace $= Nothing
@@ -66,7 +72,6 @@ display gameEnv sprites draw = do
     GL.loadIdentity
     GL.ortho 0.0 800 600 0.0 (-1.0) (1.0)
  
-    GL.color $ GL.Color4 0 0 (0::Float) 1
 
     mapM_ (renderSprite sprites) (draw state)
 
@@ -77,8 +82,10 @@ display gameEnv sprites draw = do
 
  
 renderSprite :: HashTable String Tex -> SpriteInstance -> IO()
-renderSprite textures (SpriteInstance name x y) = do
+renderSprite textures (SpriteInstance name x y options) = do
         texture <- Data.HashTable.lookup textures name
+        let (r,g,b) = color options
+        GL.color $ GL.Color4 r g b 1
         case texture of
             Just (Tex textureID w h) -> do
                 GL.textureBinding GL.Texture2D $= Just textureID
@@ -110,7 +117,7 @@ keyboardMouse _ gameEnv controlsHandler key state modifiers position = do
 data GameEnv gameState = GameEnv Int gameState
                deriving Show
  
-stepPeriod = 5
+stepPeriod = 10
 
 tick :: Int -> GameEnv gameState -> (gameState -> gameState) -> GameEnv gameState
 tick tnew (GameEnv 0 state) _ = GameEnv tnew state
