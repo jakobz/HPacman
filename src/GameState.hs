@@ -10,14 +10,17 @@ type Coord = (Int, Int)
 
 data BlockType = Space | Wall | Food | Drug deriving (Eq)
 
+data PlayerState = Alive | DeathAnimation Int | Dead deriving (Eq)
+
 data Game = Game {
                 _walls :: Array (Int, Int) Bool,
                 _food :: Set.Set (Int, Int),
                 _player :: Creature,
-                _ghosts :: [Creature]
+                _ghosts :: [Creature],
+                _playerState :: PlayerState
             }
 
-data TimeDirection = Normal | Rewind
+data TimeDirection = Normal | Rewind 
 
 data TimeGame = TimeGame {
 				_states :: [Game],
@@ -49,6 +52,8 @@ readBlock  _  = Space
  
 makeCreature x y = Creature (x * cellSize, y * cellSize) (0,0) (0,0)
 
+deathAnimationLength = 50 :: Int
+
 loadGame = do
   levelData <- readFile "data\\level.txt"
   let level = [ ((x,y), readBlock v)
@@ -59,7 +64,8 @@ loadGame = do
         _player = makeCreature 1 1,
         _ghosts = [makeCreature 17 1, makeCreature 1 33, makeCreature 17 25, makeCreature 21 19],
         _walls = array ((0,0),(levelW-1, levelH-1)) $ map (\(c, b) -> (c, b == Wall)) level,
-        _food = Set.fromList $ map fst $ filter (\(_, b) -> b == Food) level
+        _food = Set.fromList $ map fst $ filter (\(_, b) -> b == Food) level,
+        _playerState = Alive
       }
   return TimeGame {
         _states = [initGame],

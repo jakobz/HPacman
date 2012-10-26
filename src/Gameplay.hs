@@ -30,6 +30,17 @@ moveGame state =
     collisionPoints = [0, cellSize, cellSize * 2, cellSize * 3 - 1]
     boxInWall c = or [inWall $ c .+. (dx, dy) | dx <- collisionPoints, dy <- collisionPoints] 
     canMove c dir = not $ boxInWall (c .+. dir)
+    creaturesCollide (x1,y1) (x2,y2) = (abs (x1 - x2) <= creatureSize) && (abs (y1 - y2) <= creatureSize)
+    collidesWith c = any (creaturesCollide $ c) 
+    ghostsCoords = map (coords ^$) $ ghosts ^$ state
+    
+    getPlayerState Alive | collidesWith playerCoords ghostsCoords = DeathAnimation deathAnimationLength
+    getPlayerState Alive | otherwise = Alive
+    getPlayerState (DeathAnimation n) | n > 0 = DeathAnimation (n-1)
+    getPlayerState (DeathAnimation n) | otherwise = Dead
+    getPlayerState Dead = Dead
+
+    newPlayerState = getPlayerState (playerState ^$ state)
 
     -- physics
     moveCreature creature@(Creature{_coords = coords, _direction = oldDir}) =
@@ -57,10 +68,9 @@ moveGame state =
         (cdx, cdy) = direction ^$ ghost
 
         -- detect collision to another ghosts
-        otherGhostsCoords = filter (/=ghostCoords) $ map (coords ^$) $ ghosts ^$ state
-        creaturesCollide (x1,y1) (x2,y2) = (abs (x1 - x2) <= creatureSize) && (abs (y1 - y2) <= creatureSize)
+        otherGhostsCoords = filter (/=ghostCoords) $ ghostsCoords
         ghostCanMove dir = (canMove ghostCoords dir) 
-        	&& (not $ any (creaturesCollide $ ghostCoords .+. dir) otherGhostsCoords)
+        	&& (not $ collidesWith (ghostCoords .+. dir) otherGhostsCoords)
 
         -- there are two modes: 
         -- - idle - ghosts move to corners 
@@ -94,24 +104,29 @@ moveGame state =
             	$ desiredDirections ++ backupDirections
             ) ++ [(-cdx, -cdy)]
       in (intention ^= decision) ghost
-  in
-    (player ^%= moveCreature)
-    .(food ^%= eat)
-    .(ghosts ^%= map moveCreature) 
-    .(ghosts ^%= zipWith ghostAI [0..])
-    $ state
+
+    newPState = (playerState ^= newPlayerState) $ state   	
+
+    movedState = 
+	    (player ^%= moveCreature)
+	    .(food ^%= eat)
+	    .(ghosts ^%= map moveCreature) 
+	    .(ghosts ^%= zipWith ghostAI [0..])
+	    $ newPState  	
+  in if (newPlayerState == Alive) then movedState else newPState
 
 
 moveTimeGame state = 
 	let
-		normal s = let currentState = (intention.player ^= (playerIntention ^$ state)) $ head s 
-				   in moveGame currentState : s
-		rewind s | length s > 2 = tail s
-				 | otherwise = s
-	in case timeDirection ^$ state of
-		Normal -> states ^%= normal $ state
-		Rewind -> states ^%= rewind $ state
-
+		stateList = states ^$ state
+		currentState = (intention.player ^= (playerIntention ^$ state)) $ head stateList 
+		isDead = (playerState ^$ nextState) == Dead
+		nextState = moveGame currentState
+		rewindedStates = if (length stateList > 2) then tail stateList else stateList
+	in case (timeDirection ^$ state, isDead) of
+		(Normal, False) -> states ^= nextState : stateList $ state
+		(Normal, True) -> (states ^= stateList) $ state
+		(Rewind, _) -> states ^= rewindedStates $ state
 
 -- controls
 userAction (GL.Char ' ') GL.Down = timeDirection ^= Rewind

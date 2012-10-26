@@ -30,10 +30,17 @@ renderPlayer player@(Creature{_coords = coords, _direction = dir}) =
 renderGhost ghost@(Creature{_coords = coords, _direction = dir}) ghostN =
   renderCreature ("ghost_" ++ [getDirName dir]) coords (ghostsColors !! ghostN)
 
-renderGameSnapshot state =
-    [spr backSpr 0 0]
-    ++ [spr "point" (x*cellSize) (y*cellSize) | (x, y) <- Set.elems $ food ^$ state]
-    ++ renderPlayer (player ^$ state) whiteColor
-    ++ (concat $ zipWith renderGhost (ghosts ^$ state) [0..])
+playerColor Dead = (1,0,0)
+playerColor (DeathAnimation n) = 
+	let phase = (fromIntegral n) / (fromIntegral deathAnimationLength)
+	in (1, phase, phase)
+playerColor Alive = (1,1,1)
+
+renderGameSnapshot state =	
+	let ps = playerState ^$ state
+    in [spr backSpr 0 0]
+    	++ [spr "point" (x*cellSize) (y*cellSize) | (x, y) <- Set.elems $ food ^$ state]
+    	++ renderPlayer (player ^$ state) (playerColor ps)
+    	++ (concat $ zipWith renderGhost (ghosts ^$ state) [0..])
 
 renderGame state = renderGameSnapshot $ head $ states ^$ state
