@@ -18,11 +18,12 @@ toLevelCoords (x, y) = ((x `div` cellSize) `mod` levelW, (y `div` cellSize) `mod
 vecLength (x, y) = sqrt $ fromIntegral $ x * x + y * y
 scaleVec (x, y) scale = (x * scale, y * scale)
 
--- game play
-moveGame state@(Game{walls = walls}) =
+-- gameplay
+moveGame state =
   let 
     playerCoords = coords.player ^$ state
     playerDir = direction.player ^$ state
+    walls = _walls state
 
     -- collision detection 
     inWall c = walls ! toLevelCoords c
@@ -47,7 +48,7 @@ moveGame state@(Game{walls = walls}) =
 
     eat = Set.delete (toLevelCoords $ playerCoords .+. ((cellSize * 3) `div` 2, (cellSize * 3) `div` 2))
 
-    -- enemy AI. Changes intention of th ghost depending on the game state
+    -- enemy AI. Changes intention of the ghost depending on the game state
     ghostAI ghostN ghost = 
       let       
       	-- prepare necessary info
@@ -72,11 +73,11 @@ moveGame state@(Game{walls = walls}) =
         	-- the red one attacks the player directly
             playerCoords, 
             -- the pink one tries to get in front of the player
-            playerCoords .+. scaleVec (direction.player ^$ state) 12,
-            -- the blue one tries to get in at the back of the player
-            playerCoords .-. scaleVec (direction.player ^$ state) 12,
-            -- 
-            if distToPlayer > 10 then playerCoords else (0, bottom)
+            playerCoords .+. scaleVec (direction.player ^$ state) (12 * cellSize),
+            -- the blue one tries to get to the back of the player
+            playerCoords .-. scaleVec (direction.player ^$ state) (12 * cellSize),
+            -- the yellow one tries to move at some distance around the player
+            if distToPlayer > 100 then playerCoords else (right `div` 2, bottom `div` 2)
           ]
 
         target = attackTargets !! ghostN

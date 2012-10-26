@@ -11,7 +11,7 @@ type Coord = (Int, Int)
 data BlockType = Space | Wall | Food | Drug deriving (Eq)
 
 data Game = Game {
-                walls :: Array (Int, Int) Bool,
+                _walls :: Array (Int, Int) Bool,
                 _food :: Set.Set (Int, Int),
                 _player :: Creature,
                 _ghosts :: [Creature]
@@ -49,7 +49,7 @@ loadGame = do
 
   return Game { 
     _player = makeCreature 1 1,
-    _ghosts = [makeCreature 17 1, makeCreature 1 33, makeCreature 17 25], --makeCreature 21 19],
-    walls = array ((0,0),(levelW-1, levelH-1)) $ map (\(c, b) -> (c, b == Wall)) level,
+    _ghosts = [makeCreature 17 1, makeCreature 1 33, makeCreature 17 25, makeCreature 21 19],
+    _walls = array ((0,0),(levelW-1, levelH-1)) $ map (\(c, b) -> (c, b == Wall)) level,
     _food = Set.fromList $ map fst $ filter (\(_, b) -> b == Food) level
   }
