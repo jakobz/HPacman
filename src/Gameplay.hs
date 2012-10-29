@@ -82,7 +82,7 @@ moveGame state =
             -- the blue one tries to get to the back of the player
             playerCoords .-. scaleVec (direction.player ^$ state) (12 * cellSize),
             -- the yellow one tries to move at some distance around the player
-            if distToPlayer > 100 then playerCoords else (right `div` 2, bottom `div` 2)
+            if distToPlayer > (16 * 18) then playerCoords else ghostCoords
           ]
 
         newTarget = attackTargets !! ghostN

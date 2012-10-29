@@ -41,8 +41,8 @@ cellSize, levelW, levelH :: Int
 cellSize = 16
 levelW = 41
 levelH = 37
-levelWC = [0 .. levelW-1] 
-levelHC = [0 .. levelH-1]
+levelWC = [0 .. levelW - 1] 
+levelHC = [0 .. levelH - 1]
 
 creatureSize = cellSize * 3
 
