@@ -24,7 +24,10 @@ moveGame state =
     collisionPoints = [0, cellSize, cellSize * 2, cellSize * 3 - 1]
     boxInWall c = or [inWall $ c .+. (dx, dy) | dx <- collisionPoints, dy <- collisionPoints] 
     canMove c dir = not $ boxInWall (c .+. dir)
-    creaturesCollide (x1,y1) (x2,y2) = (abs (x1 - x2) <= creatureSize) && (abs (y1 - y2) <= creatureSize)
+
+--    creaturesCollide (x1,y1) (x2,y2) = (abs (x1 - x2) <= creatureSize) && (abs (y1 - y2) <= creatureSize)
+    creaturesCollide v1 v2 = vecLength (v1 .-. v2) <= 40
+
     collidesWith c = any (creaturesCollide $ c) 
     ghostsCoords = map (coords ^$) $ ghosts ^$ state
     
@@ -70,23 +73,28 @@ moveGame state =
         -- there are two modes: 
         -- - idle - ghosts move to corners 
         -- - attack - ghosts try to catch the player
+        -- each ghost have its own target in both modes
+        
         (right, bottom) = ((levelW - 1) * cellSize, (levelH - 1) * cellSize)
-        idleTargets = [(0, 0), (right, 0), (right, bottom), (0, bottom)] !! ghostN
+        getIdleTarget 0 = (0, 0)
+        getIdleTarget 1 = (right, 0)
+        getIdleTarget 2 = (right, bottom)
+        getIdleTarget 3 = (0, bottom)
+        
+        idleTarget = getIdleTarget ghostN
 
-        -- each ghost have its own attack target
-        attackTargets = [
-        	-- the red one attacks the player directly
-            playerCoords, 
-            -- the pink one tries to get in front of the player
-            playerCoords .+. scaleVec (direction.player ^$ state) (12 * cellSize),
-            -- the blue one tries to get to the back of the player
-            playerCoords .-. scaleVec (direction.player ^$ state) (12 * cellSize),
-            -- the yellow one tries to move at some distance around the player
-            if distToPlayer > (16 * 18) then playerCoords else ghostCoords
-          ]
+        -- the red one attacks the player directly
+        getAttackTarget 0 = playerCoords
+        -- the pink one tries to get in front of the player
+        getAttackTarget 1 = playerCoords .+. scaleVec (direction.player ^$ state) (12 * cellSize)
+        -- the blue one tries to get to the back of the player
+        getAttackTarget 2 = playerCoords .-. scaleVec (direction.player ^$ state) (12 * cellSize)
+        -- the yellow one tries to move at some distance around the player
+        getAttackTarget 3 = if distToPlayer > (16 * 18) then playerCoords else ghostCoords
 
-        newTarget = attackTargets !! ghostN
-        (dx, dy) = newTarget .-. ghostCoords
+        attackTarget = getAttackTarget ghostN
+
+        (dx, dy) = attackTarget .-. ghostCoords
         desiredDirections = 
             sortBy (compare `on` vecLength) 
             $ filter (/= (0, 0)) 
@@ -98,7 +106,7 @@ moveGame state =
             	$ filter ghostCanMove 
             	$ desiredDirections ++ backupDirections
             ) ++ [(-cdx, -cdy)]
-      in ((intention ^= decision) . (target ^= newTarget)) ghost
+      in ((intention ^= decision) . (target ^= attackTarget)) ghost
 
     newPState = (playerState ^= newPlayerState) $ state   	
 
