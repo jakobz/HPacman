@@ -27,8 +27,30 @@ renderCreature name c col = [itemSpr name c col, itemSpr name (fstLens ^!-= leve
 renderPlayer player@(Creature{_coords = coords, _direction = dir}) =
   renderCreature ("pacman_" ++ [getDirName dir, getMovePhase coords]) coords
 
-renderGhost ghost@(Creature{_coords = coords, _direction = dir}) ghostN =
-  renderCreature ("ghost_" ++ [getDirName dir]) coords (ghostsColors !! ghostN)
+renderGhost ghost ghostN =
+    let dirName = getDirName (direction ^$ ghost)
+        ghostCoords = (coords ^$ ghost) .+. (5,2)
+        eye1shift 'l' = (-2, 5)
+        eye1shift 'r' = (24, 5)
+        eye1shift 'u' = (4, 5)
+        eye1shift 'd' = (4, 5) 
+        eye1c = (eye1shift dirName) .+. ghostCoords
+        eye2shift 'l' = (8, 5)
+        eye2shift 'r' = (14, 5)
+        eye2shift 'u' = (17, 5)
+        eye2shift 'd' = (17, 5)
+        eye2c = (eye2shift dirName) .+. ghostCoords
+        (dx, dy) = (target ^$ ghost) .-. ghostCoords .+. (13, 13)
+        limit n = max (-2) $ min 2 (n `div` 10)
+        eyeVector = (limit dx, limit dy)
+        pupil1c = eye1c .+. (5,5) .+. eyeVector
+        pupil2c = eye2c .+. (5,5) .+. eyeVector
+    in [itemSpr ("ghost" ++ [dirName]) ghostCoords (ghostsColors !! ghostN)
+       , itemSpr "eyeballl" eye1c whiteColor
+       , itemSpr "pupill" pupil1c whiteColor
+       , itemSpr "eyeballr" eye2c whiteColor
+       , itemSpr "pupilr" pupil2c whiteColor]
+       
 
 playerColor Dead = (1,0,0)
 playerColor (DeathAnimation n) = 

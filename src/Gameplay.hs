@@ -10,13 +10,7 @@ import Data.Function (on)
 import qualified Graphics.UI.GLUT as GL
 import Data.List
 
--- coordinate helpers
-wrapCoords (x, y) = (x `mod` (levelW * cellSize), y `mod` (levelH * cellSize))
-toLevelCoords (x, y) = ((x `div` cellSize) `mod` levelW, (y `div` cellSize) `mod` levelH)
-(x1, y1) .+. (x2, y2) = (x1 + x2, y1 + y2)
-(x1, y1) .-. (x2, y2) = (x1 - x2, y1 - y2)
-vecLength (x, y) = sqrt $ fromIntegral $ x * x + y * y
-scaleVec (x, y) scale = (x * scale, y * scale)
+
 
 -- gameplay
 moveGame state =
@@ -46,6 +40,7 @@ moveGame state =
     moveCreature creature@(Creature{_coords = coords, _direction = oldDir}) =
         let 
             currentIntention@(keyX, keyY) = intention ^$ creature
+            currentTarget = target ^$ creature
             -- try to change direction to one of intended directions
             newDir = case 0 of 
                       _| keyX /= 0 && canMove coords (keyX, 0) -> (keyX, 0)
@@ -55,7 +50,7 @@ moveGame state =
             newCoords = if canMove coords newDir
                           then wrapCoords $ coords .+. newDir
                           else coords
-        in Creature newCoords newDir currentIntention
+        in Creature newCoords newDir currentIntention currentTarget
 
     eat = Set.delete (toLevelCoords $ playerCoords .+. ((cellSize * 3) `div` 2, (cellSize * 3) `div` 2))
 
@@ -90,8 +85,8 @@ moveGame state =
             if distToPlayer > 100 then playerCoords else (right `div` 2, bottom `div` 2)
           ]
 
-        target = attackTargets !! ghostN
-        (dx, dy) = target .-. ghostCoords
+        newTarget = attackTargets !! ghostN
+        (dx, dy) = newTarget .-. ghostCoords
         desiredDirections = 
             sortBy (compare `on` vecLength) 
             $ filter (/= (0, 0)) 
@@ -103,7 +98,7 @@ moveGame state =
             	$ filter ghostCanMove 
             	$ desiredDirections ++ backupDirections
             ) ++ [(-cdx, -cdy)]
-      in (intention ^= decision) ghost
+      in ((intention ^= decision) . (target ^= newTarget)) ghost
 
     newPState = (playerState ^= newPlayerState) $ state   	
 

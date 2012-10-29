@@ -31,7 +31,8 @@ data TimeGame = TimeGame {
 data Creature = Creature {
                 _coords :: Coord,
                 _direction :: Coord,
-                _intention :: Coord
+                _intention :: Coord,
+                _target :: Coord
             }
 
 $( makeLenses [''TimeGame, ''Game, ''Creature] )    
@@ -50,7 +51,7 @@ readBlock 'p' = Food
 readBlock '+' = Drug
 readBlock  _  = Space
  
-makeCreature x y = Creature (x * cellSize, y * cellSize) (0,0) (0,0)
+makeCreature x y = Creature (x * cellSize, y * cellSize) (0,0) (0,0) (0,0)
 
 deathAnimationLength = 50 :: Int
 
@@ -72,3 +73,12 @@ loadGame = do
         _timeDirection = Normal,
         _playerIntention = (0,0)
       }
+
+
+-- coordinate helpers
+wrapCoords (x, y) = (x `mod` (levelW * cellSize), y `mod` (levelH * cellSize))
+toLevelCoords (x, y) = ((x `div` cellSize) `mod` levelW, (y `div` cellSize) `mod` levelH)
+(x1, y1) .+. (x2, y2) = (x1 + x2, y1 + y2)
+(x1, y1) .-. (x2, y2) = (x1 - x2, y1 - y2)
+vecLength (x, y) = sqrt $ fromIntegral $ x * x + y * y
+scaleVec (x, y) scale = (x * scale, y * scale)
