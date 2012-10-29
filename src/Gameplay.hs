@@ -19,15 +19,15 @@ moveGame state =
     playerDir = direction.player ^$ state
     walls = _walls state
 
-    -- collision detection 
-    inWall c = walls ! toLevelCoords c
-    collisionPoints = [0, cellSize, cellSize * 2, cellSize * 3 - 1]
-    boxInWall c = or [inWall $ c .+. (dx, dy) | dx <- collisionPoints, dy <- collisionPoints] 
-    canMove c dir = not $ boxInWall (c .+. dir)
+    -- collisions with walls    
+    canMove c dir = 
+        let 
+            inWall c = walls ! toLevelCoords c
+            collisionPoints = [0, cellSize, cellSize * 2, cellSize * 3 - 1]
+            boxInWall c = or [inWall $ c .+. (dx, dy) | dx <- collisionPoints, dy <- collisionPoints] 
+        in not $ boxInWall (c .+. dir)
 
---    creaturesCollide (x1,y1) (x2,y2) = (abs (x1 - x2) <= creatureSize) && (abs (y1 - y2) <= creatureSize)
-    creaturesCollide v1 v2 = vecLength (v1 .-. v2) <= 40
-
+    creaturesCollide v1 v2 = vecLength (v1 .-. v2) <= 40 
     collidesWith c = any (creaturesCollide $ c) 
     ghostsCoords = map (coords ^$) $ ghosts ^$ state
     
@@ -39,7 +39,6 @@ moveGame state =
 
     newPlayerState = getPlayerState (playerState ^$ state)
 
-    -- physics
     moveCreature creature@(Creature{_coords = coords, _direction = oldDir}) =
         let 
             currentIntention@(keyX, keyY) = intention ^$ creature
@@ -80,10 +79,10 @@ moveGame state =
         getIdleTarget 1 = (right, 0)
         getIdleTarget 2 = (right, bottom)
         getIdleTarget 3 = (0, bottom)
-        
+
         idleTarget = getIdleTarget ghostN
 
-        -- the red one attacks the player directly
+        -- the red one moves towards the player directly
         getAttackTarget 0 = playerCoords
         -- the pink one tries to get in front of the player
         getAttackTarget 1 = playerCoords .+. scaleVec (direction.player ^$ state) (12 * cellSize)
@@ -95,15 +94,24 @@ moveGame state =
         attackTarget = getAttackTarget ghostN
 
         (dx, dy) = attackTarget .-. ghostCoords
-        desiredDirections = 
-            sortBy (compare `on` vecLength) 
+
+        -- 1st and 2nt priorities are to move towards the target by x or y 
+        desiredDirections =
+            map (\(x,y) -> (signum x, signum y)) 
+            $ reverse
+            $ sortBy (compare `on` vecLength) 
             $ filter (/= (0, 0)) 
-            $ [(0, signum dy), (signum dx, 0)]
-        backupDirections = take 4 $ drop ghostN $ cycle [(1, 0), (0, -1), (-1, 0), (0, 1)]
+            $ [(0, dy), (dx, 0)]
+
+        -- 3nd priority is to move forward
+        backupDirections = 
+            (cdx, cdy) : 
+            -- try left, right, down and up at the last
+            (take 4 $ drop ghostN $ cycle [(1, 0), (0, -1), (-1, 0), (0, 1)])
 
         decision = head $
-        	(	filter (/= (-cdx, -cdy)) -- can't go in opposite way
-            	$ filter ghostCanMove 
+        	(	filter (/= (-cdx, -cdy)) -- the opposite way should always be the last priority
+            	$ filter ghostCanMove
             	$ desiredDirections ++ backupDirections
             ) ++ [(-cdx, -cdy)]
       in ((intention ^= decision) . (target ^= attackTarget)) ghost
