@@ -129,6 +129,6 @@ tick tnew (GameEnv told state) move =
 initGL = do
     GL.initialDisplayMode $= [GL.DoubleBuffered, GL.RGBAMode]
     GL.initialWindowSize $= GL.Size 800 600
-    window <- GL.createWindow "Hello World"
+    window <- GL.createWindow "HPacman"
     return window
 
