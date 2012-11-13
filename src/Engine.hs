@@ -1,6 +1,7 @@
-module Engine (newGame, run, spr, sprEx, load, move, render, handleInput, sprOptions, color) where
+{-# LANGUAGE TemplateHaskell #-}
 
-{-# OPTIONS -fglasgow-exts #-}
+module Engine (newGame, run, spr, sprEx, load, move, render, handleInput, sprOptions, color, tile) where
+
 import Data.IORef
 import qualified Graphics.UI.GLUT as GL
 import Graphics.UI.GLUT (($=))
@@ -24,8 +25,12 @@ newGame = Game {
         handleInput = \_ _ -> id
     }
 
-data SpriteOptions = SpriteOptions { color :: (Float, Float, Float) }
-sprOptions = SpriteOptions { color = (1, 1, 1)}
+data SpriteOptions = SpriteOptions {
+        color :: (Float, Float, Float),
+        tile :: Maybe Int
+    }
+
+sprOptions = SpriteOptions { color = (1, 1, 1), tile = Nothing }
 
 data SpriteInstance = SpriteInstance { name :: String, x :: Float, y :: Float, options :: SpriteOptions }
 
@@ -80,23 +85,39 @@ display gameEnv sprites draw = do
     GL.swapBuffers
     GL.flush
 
+tileSize = 16
  
 renderSprite :: HashTable String Tex -> SpriteInstance -> IO()
 renderSprite textures (SpriteInstance name x y options) = do
-        texture <- Data.HashTable.lookup textures name
+        texture <- Data.HashTable.lookup textures name       
         let (r,g,b) = color options
         GL.color $ GL.Color4 r g b 1
         case texture of
-            Just (Tex textureID w h) -> do
+            Just (Tex textureID texW texH) -> do
+                let (tx, ty, w, h) = case tile options of 
+                                        Just tileN -> let tilesPerLine = (truncate texW) `div` tileSize
+                                                          tilesLines = (truncate texH) `div` tileSize
+                                                          (tileY, tileX) = (toInteger tileN) `divMod` tilesPerLine
+                                                      in (fromIntegral $ tileX * tileSize, 
+                                                          fromIntegral $ (tilesLines - tileY - 1) * tileSize, 
+                                                          fromIntegral tileSize,
+                                                          fromIntegral tileSize)
+                                        Nothing -> (0, 0, texW, texH)
                 GL.textureBinding GL.Texture2D $= Just textureID
+                let scaleTX c = c / texW
+                let scaleTY c = c / texH
+                let tleft = scaleTX tx
+                let tright = scaleTX (tx + w)
+                let tup = scaleTY ty
+                let tbot = scaleTY (ty + h)
                 GL.renderPrimitive GL.Quads $ do
-                    GL.texCoord (GL.TexCoord2 0 (1 :: Float))
+                    GL.texCoord (GL.TexCoord2 tleft tbot)
                     GL.vertex   (GL.Vertex2 x y)
-                    GL.texCoord (GL.TexCoord2 0 (0 :: Float))
+                    GL.texCoord (GL.TexCoord2 tleft tup)
                     GL.vertex   (GL.Vertex2 x (y + h))
-                    GL.texCoord (GL.TexCoord2 1 (0 :: Float))
+                    GL.texCoord (GL.TexCoord2 tright tup)
                     GL.vertex   (GL.Vertex2 (x + w) (y + h))
-                    GL.texCoord (GL.TexCoord2 1 (1 :: Float))
+                    GL.texCoord (GL.TexCoord2 tright tbot)
                     GL.vertex   (GL.Vertex2 (x + w) y)
             Nothing -> error $ "Can't find texture " ++ name
 

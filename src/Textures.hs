@@ -12,7 +12,7 @@ import System.FilePath.Windows
 
 import Foreign.Marshal.Alloc (free)
 
-data Tex = Tex { texture :: TextureObject, width :: Float, height :: Float }
+data Tex = Tex { texture :: TextureObject, width, height :: Float }
             deriving Show
 
 getImageFiles dir = getCurrentDirectory
@@ -26,24 +26,22 @@ getImageFiles dir = getCurrentDirectory
 getAndCreateTextures :: String -> IO [(String, Tex)]
 getAndCreateTextures subDir = do
    fileNames <- getImageFiles subDir
-   texData <- mapM readImageC fileNames
-   texObjs <- mapM createTexture texData
+   texObjs <- mapM getAndCreateTexture fileNames
    return $ zip (map takeBaseName fileNames) texObjs
-
 
 -- read a single texture
 getAndCreateTexture :: String -> IO (Tex)
 getAndCreateTexture fileName = do
-   texData <- readImageC fileName
+   putStr $ "Loading " ++ fileName ++ "... "
+   texData@((Size w h) ,_) <- readImageC fileName
    texObj <- createTexture texData
+   putStrLn $ "done " ++ show (w, h)
    return texObj
-
 
 -- read the image data
 readImageC :: String -> IO (Size, PixelData Word8)
 readImageC path = do maybeTga <- readTga path
                      return $ fromJust maybeTga
-
 
 -- creates the texture
 createTexture :: (Size, PixelData a) -> IO (Tex)
