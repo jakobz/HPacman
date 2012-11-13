@@ -9,15 +9,14 @@ import qualified Data.Set as Set
 import Data.Function (on)
 import qualified Graphics.UI.GLUT as GL
 import Data.List
-
-
+import qualified Level as Level
 
 -- gameplay
 moveGame state =
   let 
     playerCoords = coords.player ^$ state
     playerDir = direction.player ^$ state
-    walls = _walls state
+    walls = ((Level.walls).level) ^$ state
 
     -- collisions with walls    
     canMove c dir = 

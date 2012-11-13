@@ -3,6 +3,9 @@ module Rendering (renderGame) where
 import Engine
 import GameState
 import Data.Lens.Lazy
+import Prelude hiding ((.), id)
+import Control.Category
+import Level
 import qualified Data.Set as Set
 
 backSpr = "back"
@@ -58,10 +61,15 @@ playerColor (DeathAnimation n) =
 	in (1, phase, phase)
 playerColor Alive = (1,1,1)
 
+renderGameSnapshot :: Game -> [SpriteInstance]
 renderGameSnapshot state =	
-	let ps = playerState ^$ state
-    in [spr backSpr 0 0]
-    	++ [spr "point" (x*cellSize) (y*cellSize) | (x, y) <- Set.elems $ food ^$ state]
+    let ps = playerState ^$ state
+        levelTiles = (tiles.level) ^$ state
+        foodSprs = [sprEx "level" (x*cellSize) (y*cellSize) sprOptions{tile = Just 0}
+                   | (x, y) <- Set.elems $ food ^$ state]
+    in 
+      levelTiles
+      ++ foodSprs
     	++ renderPlayer (player ^$ state) (playerColor ps)
     	++ (concat $ zipWith renderGhost (ghosts ^$ state) [0..])
 

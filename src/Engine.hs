@@ -1,6 +1,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 
-module Engine (newGame, run, spr, sprEx, load, move, render, handleInput, sprOptions, color, tile) where
+module Engine (newGame, run, spr, sprEx, load, move, render, handleInput,
+                SpriteInstance(), sprOptions, color, tile, rot) where
 
 import Data.IORef
 import qualified Graphics.UI.GLUT as GL
@@ -27,10 +28,11 @@ newGame = Game {
 
 data SpriteOptions = SpriteOptions {
         color :: (Float, Float, Float),
-        tile :: Maybe Int
+        tile :: Maybe Int,
+        rot :: Int
     }
 
-sprOptions = SpriteOptions { color = (1, 1, 1), tile = Nothing }
+sprOptions = SpriteOptions { color = (1, 1, 1), tile = Nothing, rot = 0 }
 
 data SpriteInstance = SpriteInstance { name :: String, x :: Float, y :: Float, options :: SpriteOptions }
 
@@ -110,14 +112,26 @@ renderSprite textures (SpriteInstance name x y options) = do
                 let tright = scaleTX (tx + w)
                 let tup = scaleTY ty
                 let tbot = scaleTY (ty + h)
+                let (p1,p2,p3,p4) = (
+                                    GL.TexCoord2 tleft tbot,
+                                    GL.TexCoord2 tleft tup,
+                                    GL.TexCoord2 tright tup,
+                                    GL.TexCoord2 tright tbot
+                                )
+                let (r1,r2,r3,r4) = case rot options of
+                                        0 -> (p1,p2,p3,p4)
+                                        1 -> (p2,p3,p4,p1)
+                                        2 -> (p3,p4,p1,p2)
+                                        3 -> (p4,p1,p2,p3)
+
                 GL.renderPrimitive GL.Quads $ do
-                    GL.texCoord (GL.TexCoord2 tleft tbot)
+                    GL.texCoord r1
                     GL.vertex   (GL.Vertex2 x y)
-                    GL.texCoord (GL.TexCoord2 tleft tup)
+                    GL.texCoord r2
                     GL.vertex   (GL.Vertex2 x (y + h))
-                    GL.texCoord (GL.TexCoord2 tright tup)
+                    GL.texCoord r3
                     GL.vertex   (GL.Vertex2 (x + w) (y + h))
-                    GL.texCoord (GL.TexCoord2 tright tbot)
+                    GL.texCoord r4
                     GL.vertex   (GL.Vertex2 (x + w) y)
             Nothing -> error $ "Can't find texture " ++ name
 
