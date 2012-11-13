@@ -52,8 +52,8 @@ createTexture ((Size x y), pixels@(PixelData _ _ ptr)) = do
    build2DMipmaps Texture2D RGBA' (fromIntegral x) (fromIntegral y) pixels
    --texImage2D Nothing NoProxy 0 RGBA' (TextureSize2D x y) 0 pixels
 
-   --textureFilter  Texture2D $= ((Nearest, Just Nearest), Nearest)
-   textureFilter  Texture2D $= ((Linear', Just Linear'), Linear')
+   textureFilter  Texture2D $= ((Nearest, Just Nearest), Nearest)
+   --textureFilter  Texture2D $= ((Linear', Just Linear'), Linear')
    textureWrapMode Texture2D S $= (Repeated, Repeat)
    textureWrapMode Texture2D T $= (Repeated, Repeat)
    free ptr

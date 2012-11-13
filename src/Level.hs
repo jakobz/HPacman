@@ -32,13 +32,14 @@ parseLevel txt =
     let root = head $ onlyElems $ parseXML txt
         
         [w,h,tileSize] = map (readIntAttr root) ["tileswide", "tileshigh", "tilewidth"]
-        layers = map readLayer $ elChildren root
 
         readTile node = 
             let [x, y, index, rot] = map (readIntAttr node) ["x", "y", "index", "rot"]
             in (x,y,index,rot)
 
         readLayer node = map readTile $ elChildren node
+
+        layers = map readLayer $ elChildren root
 
         rawTileToWall (x,y,i,_) = ((x,y),i >= 0)
         walls = array ((0,0),(w-1,h-1)) $ map rawTileToWall (layers !! 1)
@@ -47,7 +48,7 @@ parseLevel txt =
                 sprEx "level" (x * tileSize) (y * tileSize)
                 $ sprOptions {tile = Just i, rot = r}
 
-        tilesToRender = concatMap (map rawTileToSpr) $ take 2 $ layers
+        tilesToRender = concatMap (map rawTileToSpr) $ (take 2 $ layers) ++ [layers !! 3]
 
         food = Set.fromList
                     $ map (\(x,y,_,_) -> (x,y))
