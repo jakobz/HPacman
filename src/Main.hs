@@ -1,4 +1,4 @@
-import GameState
+import Loading
 import Gameplay
 import Rendering
 import Engine

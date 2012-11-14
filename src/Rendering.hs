@@ -5,7 +5,6 @@ import GameState
 import Data.Lens.Lazy
 import Prelude hiding ((.), id)
 import Control.Category
-import Level
 import qualified Data.Set as Set
 
 backSpr = "back"
@@ -61,8 +60,8 @@ playerColor (DeathAnimation n) =
 	in (1, phase, phase)
 playerColor Alive = (1,1,1)
 
-renderGameSnapshot :: Game -> [SpriteInstance]
-renderGameSnapshot state =	
+renderWorld :: World -> [SpriteInstance]
+renderWorld state =	
     let ps = playerState ^$ state
         levelTiles = (tiles.level) ^$ state
         foodSprs = [sprEx "level" (x*cellSize) (y*cellSize) sprOptions{tile = Just 0}
@@ -73,6 +72,6 @@ renderGameSnapshot state =
     	++ renderPlayer (player ^$ state) (playerColor ps)
     	++ (concat $ zipWith renderGhost (ghosts ^$ state) [0..])
 
-renderGame state = renderGameSnapshot $ head $ states ^$ state
+renderGame state = renderWorld $ head $ worldStates ^$ state
 
 testTiles = map (\n -> sprEx "level" (n * 20) 10 sprOptions{tile = Just n}) [0..15]

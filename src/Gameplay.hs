@@ -9,19 +9,18 @@ import qualified Data.Set as Set
 import Data.Function (on)
 import qualified Graphics.UI.GLUT as GL
 import Data.List
-import qualified Level as Level
 
 -- gameplay
 moveGame state =
   let 
     playerCoords = coords.player ^$ state
     playerDir = direction.player ^$ state
-    walls = ((Level.walls).level) ^$ state
+    levelWalls = (walls.level) ^$ state
 
     -- collisions with walls    
     canMove c dir = 
         let 
-            inWall c = walls ! toLevelCoords c
+            inWall c = levelWalls ! toLevelCoords c
             collisionPoints = [0, cellSize, cellSize * 2, cellSize * 3 - 1]
             boxInWall c = or [inWall $ c .+. (dx, dy) | dx <- collisionPoints, dy <- collisionPoints] 
         in not $ boxInWall (c .+. dir)
@@ -105,14 +104,14 @@ moveGame state =
         -- 3nd priority is to move forward
         backupDirections = 
             (cdx, cdy) : 
-            -- try left, right, down and up at the last
+            -- 4nd try left, right, down and up 
             (take 4 $ drop ghostN $ cycle [(1, 0), (0, -1), (-1, 0), (0, 1)])
 
         decision = head $
         	(	filter (/= (-cdx, -cdy)) -- the opposite way should always be the last priority
             	$ filter ghostCanMove
             	$ desiredDirections ++ backupDirections
-            ) ++ [(-cdx, -cdy)]
+            ) ++ [(-cdx, -cdy)] -- 5nd is the opposite way
       in ((intention ^= decision) . (target ^= attackTarget)) ghost
 
     newPState = (playerState ^= newPlayerState) $ state   	
@@ -128,15 +127,15 @@ moveGame state =
 
 moveTimeGame state = 
 	let
-		stateList = states ^$ state
+		stateList = worldStates ^$ state
 		currentState = (intention.player ^= (playerIntention ^$ state)) $ head stateList 
 		isDead = (playerState ^$ nextState) == Dead
 		nextState = moveGame currentState
 		rewindedStates = if (length stateList > 2) then tail stateList else stateList
 	in case (timeDirection ^$ state, isDead) of
-		(Normal, False) -> states ^= nextState : stateList $ state
-		(Normal, True) -> (states ^= stateList) $ state
-		(Rewind, _) -> states ^= rewindedStates $ state
+		(Normal, False) -> worldStates ^= nextState : stateList $ state
+		(Normal, True) -> (worldStates ^= stateList) $ state
+		(Rewind, _) -> worldStates ^= rewindedStates $ state
 
 -- controls
 userAction (GL.Char ' ') GL.Down = timeDirection ^= Rewind
