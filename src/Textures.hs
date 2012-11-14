@@ -33,9 +33,9 @@ getAndCreateTextures subDir = do
 getAndCreateTexture :: String -> IO (Tex)
 getAndCreateTexture fileName = do
    putStr $ "Loading " ++ fileName ++ "... "
-   texData@((Size w h) ,_) <- readImageC fileName
+   texData@((Size w h) , PixelData pixelFormat _ _) <- readImageC fileName
    texObj <- createTexture texData
-   putStrLn $ "done " ++ show (w, h)
+   putStrLn $ "done " ++ show (w, h, pixelFormat)
    return texObj
 
 -- read the image data
