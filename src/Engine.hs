@@ -63,7 +63,15 @@ quit window = do
    
 display gameEnv sprites draw = do 
     GameEnv time state  <- GL.get gameEnv
+
+    -- GL.viewport $= (GL.Position 0 0, GL.Size 800 600)
+    GL.clearColor $= GL.Color4 1.0 1.0 1.0 (0.0 :: Float)
+    GL.clear [GL.ColorBuffer]
  
+    GL.matrixMode $= GL.Projection
+    GL.loadIdentity
+    GL.ortho 0 800 600 0 (-1.0) (1.0)
+
     GL.blendEquation $= GL.FuncAdd 
     GL.blendFunc $= (GL.SrcAlpha, GL.OneMinusSrcAlpha)
     GL.blend $= GL.Enabled
@@ -73,12 +81,6 @@ display gameEnv sprites draw = do
     GL.depthFunc $= Nothing
     GL.cullFace $= Nothing
 
-    GL.clearColor $= GL.Color4 0.0 0.0 0.0 (0.0 :: Float)
-    GL.clear [GL.ColorBuffer]
-
-    GL.loadIdentity
-    GL.ortho 0.0 800 600 0.0 (-1.0) (1.0)
- 
 
     mapM_ (renderSprite sprites) (draw state)
 
@@ -88,51 +90,61 @@ display gameEnv sprites draw = do
     GL.flush
 
 tileSize = 16
+
+spriteToCoords (texW, texH) (SpriteInstance name x y options) =
+    let (tx, ty, w, h) = 
+            case tile options of 
+                Just tileN -> let tilesPerLine = (truncate texW) `div` tileSize
+                                  tilesLines = (truncate texH) `div` tileSize
+                                  (tileY, tileX) = (toInteger tileN) `divMod` tilesPerLine
+                              in (fromIntegral $ tileX * tileSize, 
+                                  fromIntegral $ (tilesLines - tileY - 1) * tileSize, 
+                                  fromIntegral tileSize,
+                                  fromIntegral tileSize)
+                Nothing -> (0, 0, texW, texH)
+        scaleTX c = c / texW 
+        scaleTY c = c / texH 
+        tleft = scaleTX tx
+        tright = scaleTX (tx + w)
+        tup = scaleTY ty
+        tbot = scaleTY (ty + h)
+        (p1,p2,p3,p4) = (
+                            GL.TexCoord2 tleft tbot,
+                            GL.TexCoord2 tleft tup,
+                            GL.TexCoord2 tright tup,
+                            GL.TexCoord2 tright tbot
+                        )
+        (t1,t2,t3,t4) = case rot options of
+                                0 -> (p1,p2,p3,p4)
+                                1 -> (p2,p3,p4,p1)
+                                2 -> (p3,p4,p1,p2)
+                                3 -> (p4,p1,p2,p3) 
+        (c1,c2,c3,c4) = (
+                (GL.Vertex2 x y),
+                (GL.Vertex2 x (y + h)),
+                (GL.Vertex2 (x + w) (y + h)),
+                (GL.Vertex2 (x + w) y)
+            )
+    in ((c1,c2,c3,c4), (t1,t2,t3,t4), color options)
  
 renderSprite :: HashTable String Tex -> SpriteInstance -> IO()
-renderSprite textures (SpriteInstance name x y options) = do
-        texture <- Data.HashTable.lookup textures name       
-        let (r,g,b) = color options
-        GL.color $ GL.Color4 r g b 1
-        case texture of
-            Just (Tex textureID texW texH) -> do
-                let (tx, ty, w, h) = case tile options of 
-                                        Just tileN -> let tilesPerLine = (truncate texW) `div` tileSize
-                                                          tilesLines = (truncate texH) `div` tileSize
-                                                          (tileY, tileX) = (toInteger tileN) `divMod` tilesPerLine
-                                                      in (fromIntegral $ tileX * tileSize, 
-                                                          fromIntegral $ (tilesLines - tileY - 1) * tileSize, 
-                                                          fromIntegral tileSize,
-                                                          fromIntegral tileSize)
-                                        Nothing -> (0, 0, texW, texH)
+renderSprite textures sprite@(SpriteInstance name _ _ _) = do
+        maybeTexture <- Data.HashTable.lookup textures name  
+        case maybeTexture of
+            Just texture@(Tex textureID texW texH) -> do
+                let ((c1,c2,c3,c4), (t1,t2,t3,t4), (r,g,b)) =
+                        spriteToCoords (texW, texH) sprite
                 GL.textureBinding GL.Texture2D $= Just textureID
-                let scaleTX c = c / texW
-                let scaleTY c = c / texH
-                let tleft = scaleTX tx
-                let tright = scaleTX (tx + w)
-                let tup = scaleTY ty
-                let tbot = scaleTY (ty + h)
-                let (p1,p2,p3,p4) = (
-                                    GL.TexCoord2 tleft tbot,
-                                    GL.TexCoord2 tleft tup,
-                                    GL.TexCoord2 tright tup,
-                                    GL.TexCoord2 tright tbot
-                                )
-                let (r1,r2,r3,r4) = case rot options of
-                                        0 -> (p1,p2,p3,p4)
-                                        1 -> (p2,p3,p4,p1)
-                                        2 -> (p3,p4,p1,p2)
-                                        3 -> (p4,p1,p2,p3)
-
+                GL.color $ GL.Color4 r g b 1
                 GL.renderPrimitive GL.Quads $ do
-                    GL.texCoord r1
-                    GL.vertex   (GL.Vertex2 x y)
-                    GL.texCoord r2
-                    GL.vertex   (GL.Vertex2 x (y + h))
-                    GL.texCoord r3
-                    GL.vertex   (GL.Vertex2 (x + w) (y + h))
-                    GL.texCoord r4
-                    GL.vertex   (GL.Vertex2 (x + w) y)
+                    GL.texCoord t1
+                    GL.vertex   c1
+                    GL.texCoord t2
+                    GL.vertex   c2
+                    GL.texCoord t3
+                    GL.vertex   c3
+                    GL.texCoord t4
+                    GL.vertex   c4
             Nothing -> error $ "Can't find texture " ++ name
 
 idle gameEnv move = do

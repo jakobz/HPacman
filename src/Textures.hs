@@ -49,13 +49,13 @@ createTexture ((Size x y), pixels@(PixelData _ _ ptr)) = do
    [texName] <- genObjectNames 1  -- generate our texture.
    textureBinding Texture2D $= Just texName  -- make our new texture the current texture.
 
-   build2DMipmaps Texture2D RGBA' (fromIntegral x) (fromIntegral y) pixels
-   --texImage2D Nothing NoProxy 0 RGBA' (TextureSize2D x y) 0 pixels
+--   build2DMipmaps Texture2D RGBA' (fromIntegral x) (fromIntegral y) pixels
+   texImage2D Nothing NoProxy 0 RGBA' (TextureSize2D x y) 0 pixels
 
-   textureFilter  Texture2D $= ((Nearest, Just Nearest), Nearest)
-   --textureFilter  Texture2D $= ((Linear', Just Linear'), Linear')
-   textureWrapMode Texture2D S $= (Repeated, Repeat)
-   textureWrapMode Texture2D T $= (Repeated, Repeat)
+   --textureFilter  Texture2D $= ((Nearest, Nothing), Nearest)
+   textureFilter  Texture2D $= ((Linear', Nothing), Linear')
+   textureWrapMode Texture2D S $= (Repeated, Clamp)
+   textureWrapMode Texture2D T $= (Repeated, Clamp)
    free ptr
    return (Tex texName (fromIntegral x) (fromIntegral y))
 

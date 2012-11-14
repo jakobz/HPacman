@@ -48,7 +48,9 @@ parseLevel txt =
                 sprEx "level" (x * tileSize) (y * tileSize)
                 $ sprOptions {tile = Just i, rot = r}
 
-        tilesToRender = concatMap (map rawTileToSpr) $ (take 2 $ layers) ++ [layers !! 3]
+        tilesToRender = map rawTileToSpr 
+                    $ filter (\(_,_,i,_) -> i >= 0)
+                    $ concat $ (take 2 $ layers) ++ [layers !! 3]
 
         food = Set.fromList
                     $ map (\(x,y,_,_) -> (x,y))
