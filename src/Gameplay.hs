@@ -1,4 +1,4 @@
-module Gameplay (moveTimeGame, userAction) where 
+module Gameplay (moveGame, userAction) where 
 
 import GameState
 import Prelude hiding ((.), id)
@@ -11,7 +11,7 @@ import qualified Graphics.UI.GLUT as GL
 import Data.List
 
 -- gameplay
-moveGame state =
+moveWorld state =
   let 
     playerCoords = coords.player ^$ state
     playerDir = direction.player ^$ state
@@ -25,7 +25,7 @@ moveGame state =
             boxInWall c = or [inWall $ c .+. (dx, dy) | dx <- collisionPoints, dy <- collisionPoints] 
         in not $ boxInWall (c .+. dir)
 
-    creaturesCollide v1 v2 = vecLength (v1 .-. v2) <= 40 
+    creaturesCollide = circlesIntersects 40 
     collidesWith c = any (creaturesCollide $ c) 
     ghostsCoords = map (coords ^$) $ ghosts ^$ state
     
@@ -125,12 +125,12 @@ moveGame state =
   in if (newPlayerState == Alive) then movedState else newPState
 
 
-moveTimeGame state = 
+moveGame state = 
 	let
 		stateList = worldStates ^$ state
 		currentState = (intention.player ^= (playerIntention ^$ state)) $ head stateList 
 		isDead = (playerState ^$ nextState) == Dead
-		nextState = moveGame currentState
+		nextState = moveWorld currentState
 		rewindedStates = if (length stateList > 2) then tail stateList else stateList
 	in case (timeDirection ^$ state, isDead) of
 		(Normal, False) -> worldStates ^= nextState : stateList $ state

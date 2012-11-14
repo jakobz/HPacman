@@ -73,4 +73,6 @@ toLevelCoords (x, y) = ((x `div` cellSize) `mod` levelW, (y `div` cellSize) `mod
 (x1, y1) .-. (x2, y2) = (x1 - x2, y1 - y2)
 vecLength (x, y) = sqrt $ fromIntegral $ x * x + y * y
 scaleVec (x, y) scale = (x * scale, y * scale)
+circlesIntersects size c1 c2 = vecLength (c1 .-. c2) <= size
+boxesIntersects (c1, size1) (c2, size2) = False
 

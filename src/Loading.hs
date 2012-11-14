@@ -85,8 +85,6 @@ parseLevel txt =
 loadGame = do
   levelXml <- readFile "data\\level.xml"
   let level = parseLevel levelXml
-  print $ portals ^$ level
-  let 
       makeCreature x y = Creature (x * cellSize, y * cellSize) (0,0) (0,0) (0,0)
       initGame = World { 
         _level = level,
