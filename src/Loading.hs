@@ -91,7 +91,7 @@ loadGame = do
       initGame = World { 
         _level = level,
         _player = makeCreature (1, 1),
-        _ghosts = [makeCreature (41, 1), makeCreature (1, 33), makeCreature (19, 17), makeCreature (41, 33)],
+        _ghosts = [makeCreature (41, 33), makeCreature (1, 33), makeCreature (19, 17),makeCreature (41, 1)],
         _food = initialFood ^$ level,
         _playerState = Alive
       }

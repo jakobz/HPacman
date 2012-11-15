@@ -2,6 +2,7 @@
 module GameState where
 
 import Data.Array
+import Data.Maybe
 import qualified Data.Set as Set
 import Data.Lens.Lazy
 import Data.Lens.Template 
@@ -65,6 +66,9 @@ levelHC = [0 .. levelH - 1]
 creatureSize = cellSize * 3
 creatureCenterShift = (cellSize * 3 / 2, cellSize * 3 / 2)
 deathAnimationLength = 50 :: Int
+
+-- common helpers 
+firstJust = head . catMaybes 
 
 -- coordinate helpers
 wrapCoords (x, y) = (x `mod'` (levelW * cellSize), y `mod'` (levelH * cellSize))

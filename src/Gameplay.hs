@@ -18,12 +18,13 @@ moveWorld state =
     levelWalls = (walls.level) ^$ state
 
     -- collisions with walls    
-    canMove c dir = 
+    tryMove c dir = 
         let 
             inWall c = levelWalls ! toLevelCoords (c .-. creatureCenterShift)
             collisionPoints = [0, cellSize, cellSize * 2, cellSize * 3 - 1]
             boxInWall c = or [inWall $ (c .+. (dx, dy)) | dx <- collisionPoints, dy <- collisionPoints] 
-        in not $ boxInWall (c .+. dir)
+            canMove = not $ boxInWall (c .+. dir)
+        in if canMove then Just (wrapCoords $ c .+. dir, dir) else Nothing
 
     creaturesCollide = circlesIntersects 40
     collidesWith c = any (creaturesCollide $ c) 
@@ -37,19 +38,13 @@ moveWorld state =
 
     newPlayerState = getPlayerState (playerState ^$ state)
 
-    moveCreature creature@(Creature{_coords = coords, _direction = oldDir}) =
+    moveCreature creature@(Creature{_coords = oldCoords, _direction = oldDir}) =
         let 
             currentIntention@(keyX, keyY) = intention ^$ creature
             currentTarget = target ^$ creature
             -- try to change direction to one of intended directions
-            newDir = case 0 of 
-                      _| keyX /= 0 && canMove coords (keyX, 0) -> (keyX, 0)
-                      _| keyY /= 0 && canMove coords (0, keyY) -> (0, keyY)
-                      _| otherwise -> oldDir
-            -- move along the current direction if it is possible
-            newCoords = if canMove coords newDir
-                          then wrapCoords $ coords .+. newDir
-                          else coords
+            newDirs = filter (/=(0,0)) $ [(keyX, 0), (0, keyY), oldDir]
+            (newCoords, newDir) = firstJust $ (map (tryMove oldCoords) newDirs) ++ [Just (oldCoords, oldDir)]
         in Creature newCoords newDir currentIntention currentTarget
 
     eat = Set.delete $ toLevelCoords $ playerCoords
@@ -64,8 +59,6 @@ moveWorld state =
 
         -- detect collision to another ghosts
         otherGhostsCoords = filter (/=ghostCoords) $ ghostsCoords
-        ghostCanMove dir = (canMove ghostCoords dir) 
-        	&& (not $ collidesWith (ghostCoords .+. dir) otherGhostsCoords)
 
         -- there are two modes: 
         -- - idle - ghosts move to corners 
@@ -94,24 +87,25 @@ moveWorld state =
         (dx, dy) = attackTarget .-. ghostCoords
 
         -- 1st and 2nt priorities are to move towards the target by x or y 
-        desiredDirections =
+        desiredDirections =            
             map (\(x,y) -> (signum x, signum y)) 
             $ reverse
             $ sortBy (compare `on` vecLength) 
             $ filter (/= (0, 0)) 
             $ [(0, dy), (dx, 0)]
 
-        -- 3nd priority is to move forward
         backupDirections = 
+            -- 3nd priority is to move forward
             (cdx, cdy) : 
             -- 4nd try left, right, down and up 
             (take 4 $ drop ghostN $ cycle [(1, 0), (0, -1), (-1, 0), (0, 1)])
 
-        decision = head $
-        	(	filter (/= (-cdx, -cdy)) -- the opposite way should always be the last priority
-            	$ filter ghostCanMove
-            	$ desiredDirections ++ backupDirections
-            ) ++ [(-cdx, -cdy)] -- 5nd is the opposite way
+        directionsByPriority = 
+            (filter (/= (-cdx, -cdy)) (desiredDirections ++ backupDirections))
+            ++ [(-cdx, -cdy), (0,0)] -- the opposite way and stop should always be the last priories
+
+        (newCoords, decision) = firstJust $ map (tryMove ghostCoords) directionsByPriority
+
       in ((intention ^= decision) . (target ^= attackTarget)) ghost
 
     newPState = (playerState ^= newPlayerState) $ state   	
