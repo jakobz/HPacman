@@ -74,7 +74,7 @@ parseLevel txt =
 
         layerToRotMap layer = Map.fromList $ map (\(x,y,_,rot) -> ((x,y),rot)) layer        
 
-        extractPortal enterTiles = 
+        extractPortals enterTiles = 
             let 
                 -- Each enter is formed with 3 tiles for editing conviniencs, 
                 -- We considering only topmost leftmost of each 3 during parsing
@@ -83,11 +83,11 @@ parseLevel txt =
                 distinctEnters = filter isVisualExt $ 
                         Map.toList enterTiles
                 makeEnter (c, rot) = let (c1, c2) = portalCoords rot c
-                                     in PortalEnter (toPixelCoords c1) (toPixelCoords c2) rot
+                                     in (toPixelCoords c1, toPixelCoords c2)
                 enters = map makeEnter distinctEnters
-            in Portal enters
+            in [Portal (enters !! 0) (enters !! 1), Portal (enters !! 1) (enters !! 0)]
 
-        portals = map extractPortal portalGroups
+        portals = concatMap extractPortals portalGroups
 
     in Level tilesToRender walls food portals
 
@@ -98,7 +98,7 @@ loadGame = do
       initGame = World { 
         _level = level,
         _player = makeCreature (1, 1),
-        _ghosts = [makeCreature (41, 33), makeCreature (1, 33), makeCreature (19, 17),makeCreature (41, 1)],
+        _ghosts = [makeCreature (41, 33), makeCreature (1, 33), makeCreature (19, 17), makeCreature (41, 1)],
         _food = initialFood ^$ level,
         _playerState = Alive
       }

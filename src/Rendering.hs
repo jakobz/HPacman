@@ -79,7 +79,6 @@ renderGame state = renderWorld $ head $ worldStates ^$ state
 
 -- debug rendering
 renderPortals level = 
-  let allEnters = concatMap (enters ^$) (portals ^$ level)
-      enterToLine (PortalEnter start end _) = 
-        line (1,1,1) [start, end]
-  in map enterToLine allEnters
+  let allPortals = portals ^$ level
+      portalToLine (Portal (p1,p2) _) = line (1,1,1) [p1, p2]
+  in map portalToLine allPortals
