@@ -19,7 +19,7 @@ getDirName (0, 0) = 'r'
 whiteColor = (1,1,1)
 ghostsColors = [(1,0,0), (1,0,1), (0,1,1), (1,0.5,0)]
 
-itemSpr name c col = let opts = sprOptions { color = col }
+itemSpr name c col = let opts = sprOptions { sprColor = col }
                           in  sprEx name c opts
 
 getMovePhase (x, y) = "23344311" !! (((truncate $ x + y) `div` 4) `mod` 8)
@@ -61,7 +61,7 @@ playerColor (DeathAnimation n) =
 	in (1, phase, phase)
 playerColor Alive = (1,1,1)
 
-renderWorld :: World -> [SpriteInstance]
+renderWorld :: World -> [RenderItem]
 renderWorld state =	
     let ps = playerState ^$ state
         levelTiles = (tiles.level) ^$ state
@@ -72,5 +72,14 @@ renderWorld state =
       ++ foodSprs
     	++ renderPlayer (player ^$ state) (playerColor ps)
     	++ (concat $ zipWith renderGhost (ghosts ^$ state) [0..])
+      ++ renderPortals (level ^$ state)
 
 renderGame state = renderWorld $ head $ worldStates ^$ state
+
+
+-- debug rendering
+renderPortals level = 
+  let allEnters = concatMap (enters ^$) (portals ^$ level)
+      enterToLine (PortalEnter start end _) = 
+        line (1,1,1) [start, end]
+  in map enterToLine allEnters

@@ -25,6 +25,11 @@ xName name = QName name Nothing Nothing
 readIntAttr :: Element -> String -> Int
 readIntAttr tag name = read $ fromJust $ findAttr (xName name) tag :: Int
 
+portalCoords 0 v = (v .+. (0,0), v .+. (0,3))
+portalCoords 1 v = (v .+. (0,0), v .+. (3,0))
+portalCoords 2 v = (v .+. (1,3), v .+. (1,0))
+portalCoords 3 v = (v .+. (0,1), v .+. (3,1))
+
 parseLevel txt = 
     let root = head $ onlyElems $ parseXML txt
         
@@ -67,7 +72,7 @@ parseLevel txt =
                     $ sortBy (compare `on` getTileNum) 
                     $ removeEmptyTiles $ layers !! 3
 
-        layerToRotMap layer = Map.fromList $ map (\(x,y,_,rot) -> ((x,y),rot)) layer
+        layerToRotMap layer = Map.fromList $ map (\(x,y,_,rot) -> ((x,y),rot)) layer        
 
         extractPortal enterTiles = 
             let 
@@ -77,7 +82,9 @@ parseLevel txt =
                     not (Map.member (x-1, y) enterTiles || Map.member (x, y-1) enterTiles)
                 distinctEnters = filter isVisualExt $ 
                         Map.toList enterTiles
-                enters = map (\(c, rot) -> PortalEnter c rot) distinctEnters
+                makeEnter (c, rot) = let (c1, c2) = portalCoords rot c
+                                     in PortalEnter (toPixelCoords c1) (toPixelCoords c2) rot
+                enters = map makeEnter distinctEnters
             in Portal enters
 
         portals = map extractPortal portalGroups

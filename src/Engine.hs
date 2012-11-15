@@ -1,7 +1,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 
 module Engine (newGame, run, spr, sprEx, load, move, render, handleInput,
-                SpriteInstance(), sprOptions, color, tile, rot) where
+                RenderItem(), sprOptions, sprColor, tile, rot, line) where
 
 import Data.IORef
 import qualified Graphics.UI.GLUT as GL
@@ -11,11 +11,12 @@ import Textures
 import Data.HashTable
 import Data.Maybe
 import Debug.Trace
+import Control.Monad
 
 data Game state = Game {
         load :: IO state,
         move :: state -> state,
-        render :: state -> [SpriteInstance],
+        render :: state -> [RenderItem],
         handleInput ::  GL.Key -> GL.KeyState -> state -> state
     }
 
@@ -26,19 +27,23 @@ newGame = Game {
         handleInput = \_ _ -> id
     }
 
+data RenderItem = 
+    SpriteInstance { name :: String, x :: Float, y :: Float, options :: SpriteOptions }
+    | LineInstance { points :: [(Float, Float)], lineColor :: (Float, Float, Float) }
+
 data SpriteOptions = SpriteOptions {
-        color :: (Float, Float, Float),
+        sprColor :: (Float, Float, Float),
         tile :: Maybe Int,
         rot :: Int
     }
 
-sprOptions = SpriteOptions { color = (1, 1, 1), tile = Nothing, rot = 0 }
-
-data SpriteInstance = SpriteInstance { name :: String, x :: Float, y :: Float, options :: SpriteOptions }
+sprOptions = SpriteOptions { sprColor = (1, 1, 1), tile = Nothing, rot = 0 }
 
 spr name (x, y) = SpriteInstance name x y sprOptions
 
 sprEx name (x, y) options = SpriteInstance name x y options
+
+line color points = LineInstance points color
 
 
 --run :: [String] -> IO state -> (state -> state) -> (state -> [SpriteInstance]) -> IO()
@@ -77,12 +82,11 @@ display gameEnv sprites draw = do
     GL.blend $= GL.Enabled
  
     GL.textureFunction $= GL.Modulate
-    GL.texture GL.Texture2D $= GL.Enabled
     GL.depthFunc $= Nothing
     GL.cullFace $= Nothing
 
 
-    mapM_ (renderSprite sprites) (draw state)
+    mapM_ (renderItem sprites) (draw state)
 
     GL.renderPrimitive GL.Points $ do
             GL.vertex   (GL.Vertex2 0 (0 :: Float))
@@ -90,6 +94,33 @@ display gameEnv sprites draw = do
     GL.flush
 
 tileSize = 16
+
+renderItem :: HashTable String Tex -> RenderItem -> IO()
+renderItem textures sprite@(SpriteInstance name _ _ _) = do
+        maybeTexture <- Data.HashTable.lookup textures name  
+        case maybeTexture of
+            Just texture@(Tex textureID texW texH) -> do
+                let ((c1,c2,c3,c4), (t1,t2,t3,t4), (r,g,b)) =
+                        spriteToCoords (texW, texH) sprite
+                GL.textureBinding GL.Texture2D $= Just textureID
+                GL.texture GL.Texture2D $= GL.Enabled
+                GL.color $ GL.Color4 r g b 1
+                GL.renderPrimitive GL.Quads $ do
+                    GL.texCoord t1
+                    GL.vertex   c1
+                    GL.texCoord t2
+                    GL.vertex   c2
+                    GL.texCoord t3
+                    GL.vertex   c3
+                    GL.texCoord t4
+                    GL.vertex   c4
+            Nothing -> error $ "Can't find texture " ++ name
+
+renderItem textures line@(LineInstance points (r,g,b)) =
+    do GL.color $ GL.Color4 r g b 1
+       GL.texture GL.Texture2D $= GL.Disabled
+       GL.renderPrimitive GL.LineStrip $ do
+            forM_ points (\(x,y) -> GL.vertex $ GL.Vertex2 x y)
 
 spriteToCoords (texW, texH) (SpriteInstance name x y options) =
     let (tx, ty, w, h) = 
@@ -125,27 +156,8 @@ spriteToCoords (texW, texH) (SpriteInstance name x y options) =
                 (GL.Vertex2 (x + w) (y + h)),
                 (GL.Vertex2 (x + w) y)
             )
-    in ((c1,c2,c3,c4), (t1,t2,t3,t4), color options)
+    in ((c1,c2,c3,c4), (t1,t2,t3,t4), sprColor options)
  
-renderSprite :: HashTable String Tex -> SpriteInstance -> IO()
-renderSprite textures sprite@(SpriteInstance name _ _ _) = do
-        maybeTexture <- Data.HashTable.lookup textures name  
-        case maybeTexture of
-            Just texture@(Tex textureID texW texH) -> do
-                let ((c1,c2,c3,c4), (t1,t2,t3,t4), (r,g,b)) =
-                        spriteToCoords (texW, texH) sprite
-                GL.textureBinding GL.Texture2D $= Just textureID
-                GL.color $ GL.Color4 r g b 1
-                GL.renderPrimitive GL.Quads $ do
-                    GL.texCoord t1
-                    GL.vertex   c1
-                    GL.texCoord t2
-                    GL.vertex   c2
-                    GL.texCoord t3
-                    GL.vertex   c3
-                    GL.texCoord t4
-                    GL.vertex   c4
-            Nothing -> error $ "Can't find texture " ++ name
 
 idle gameEnv move = do
     env <- GL.get gameEnv

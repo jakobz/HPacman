@@ -39,7 +39,7 @@ data Creature = Creature {
             }
 
 data Level = Level {
-    _tiles :: [SpriteInstance],
+    _tiles :: [RenderItem],
     _walls :: Array (Int, Int) Bool,
     _initialFood :: Set.Set (Int, Int),
     _portals :: [Portal]
@@ -50,7 +50,8 @@ data Portal = Portal {
 } deriving (Show)
 
 data PortalEnter = PortalEnter{
-    _portalStart :: (Int, Int),
+    _portalStart :: Coord,
+    _portalEnd :: Coord,
     _portalDirection :: Int
 } deriving (Show)            
 
@@ -72,6 +73,9 @@ firstJust = head . catMaybes
 
 -- coordinate helpers
 wrapCoords (x, y) = (x `mod'` (levelW * cellSize), y `mod'` (levelH * cellSize))
+
+toPixelCoords :: (Int, Int) -> Coord
+toPixelCoords c =  scaleVec cellSize $ toFloatVec c
 
 toLevelCoords :: (Float, Float) -> (Int, Int)
 toLevelCoords v = truncVec $ scaleVec (1/cellSize) $ wrapCoords v
@@ -95,3 +99,11 @@ truncVec (x,y) = (truncate x, truncate y)
 
 toFloatVec :: (Int, Int) -> Coord
 toFloatVec (x,y) = (fromIntegral x, fromIntegral y)
+
+vectorsIntersects :: (Coord, Coord) -> (Coord, Coord) -> Bool
+vectorsIntersects _ _ = False
+
+directionToVec 0 = (-1, 0)
+directionToVec 1 = ( 0, 1)
+directionToVec 2 = ( 1, 0)
+directionToVec 3 = ( 0,-1)
