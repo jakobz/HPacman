@@ -19,19 +19,20 @@ getDirName (0, 0) = 'r'
 whiteColor = (1,1,1)
 ghostsColors = [(1,0,0), (1,0,1), (0,1,1), (1,0.5,0)]
 
-itemSpr name (x, y) col = let opts = sprOptions { color = col }
-                          in  sprEx name x y opts
+itemSpr name c col = let opts = sprOptions { color = col }
+                          in  sprEx name c opts
 
-getMovePhase (x, y) = "23344311" !! (((x + y) `div` 4) `mod` 8)
+getMovePhase (x, y) = "23344311" !! (((truncate $ x + y) `div` 4) `mod` 8)
 
-renderCreature name c col = [itemSpr name c col, itemSpr name (fstLens ^!-= levelW * cellSize $ c) col]
+renderCreature name c col = [itemSpr name c col]
 
-renderPlayer player@(Creature{_coords = coords, _direction = dir}) =
-  renderCreature ("pacman_" ++ [getDirName dir, getMovePhase coords]) coords
+renderPlayer player@(Creature{_direction = dir}) =
+  let c = (coords ^$ player) .-. creatureCenterShift
+  in renderCreature ("pacman_" ++ [getDirName dir, getMovePhase c]) c
 
 renderGhost ghost ghostN =
     let dirName = getDirName (direction ^$ ghost)
-        ghostCoords = (coords ^$ ghost) .+. (5,2)
+        ghostCoords = (coords ^$ ghost) .-. creatureCenterShift .+. (5,2) 
         eye1shift 'l' = (-2, 5)
         eye1shift 'r' = (24, 5)
         eye1shift 'u' = (4, 5)
@@ -43,7 +44,7 @@ renderGhost ghost ghostN =
         eye2shift 'd' = (17, 5)
         eye2c = (eye2shift dirName) .+. ghostCoords
         (dx, dy) = (target ^$ ghost) .-. ghostCoords .+. (13, 13)
-        limit n = max (-2) $ min 2 (n `div` 50)
+        limit n = max (-2) $ min 2 (n / 50)
         eyeVector = (limit dx, limit dy)
         pupil1c = eye1c .+. (5,5) .+. eyeVector
         pupil2c = eye2c .+. (5,5) .+. eyeVector
@@ -64,8 +65,8 @@ renderWorld :: World -> [SpriteInstance]
 renderWorld state =	
     let ps = playerState ^$ state
         levelTiles = (tiles.level) ^$ state
-        foodSprs = [sprEx "level" (x*cellSize) (y*cellSize) sprOptions{tile = Just 0}
-                   | (x, y) <- Set.elems $ food ^$ state]
+        foodSprs = [sprEx "level" (scaleVec cellSize $ toFloatVec v) sprOptions{tile = Just 0}
+                   | v <- Set.elems $ food ^$ state]
     in 
       levelTiles
       ++ foodSprs
@@ -73,5 +74,3 @@ renderWorld state =
     	++ (concat $ zipWith renderGhost (ghosts ^$ state) [0..])
 
 renderGame state = renderWorld $ head $ worldStates ^$ state
-
-testTiles = map (\n -> sprEx "level" (n * 20) 10 sprOptions{tile = Just n}) [0..15]

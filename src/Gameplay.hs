@@ -20,12 +20,12 @@ moveWorld state =
     -- collisions with walls    
     canMove c dir = 
         let 
-            inWall c = levelWalls ! toLevelCoords c
+            inWall c = levelWalls ! toLevelCoords (c .-. creatureCenterShift)
             collisionPoints = [0, cellSize, cellSize * 2, cellSize * 3 - 1]
-            boxInWall c = or [inWall $ c .+. (dx, dy) | dx <- collisionPoints, dy <- collisionPoints] 
+            boxInWall c = or [inWall $ (c .+. (dx, dy)) | dx <- collisionPoints, dy <- collisionPoints] 
         in not $ boxInWall (c .+. dir)
 
-    creaturesCollide = circlesIntersects 40 
+    creaturesCollide = circlesIntersects 40
     collidesWith c = any (creaturesCollide $ c) 
     ghostsCoords = map (coords ^$) $ ghosts ^$ state
     
@@ -52,7 +52,7 @@ moveWorld state =
                           else coords
         in Creature newCoords newDir currentIntention currentTarget
 
-    eat = Set.delete (toLevelCoords $ playerCoords .+. ((cellSize * 3) `div` 2, (cellSize * 3) `div` 2))
+    eat = Set.delete $ toLevelCoords $ playerCoords
 
     -- enemy AI. Changes intention of the ghost depending on the game state
     ghostAI ghostN ghost = 
@@ -83,9 +83,9 @@ moveWorld state =
         -- the red one moves towards the player directly
         getAttackTarget 0 = playerCoords
         -- the pink one tries to get in front of the player
-        getAttackTarget 1 = playerCoords .+. scaleVec (direction.player ^$ state) (12 * cellSize)
+        getAttackTarget 1 = playerCoords .+. scaleVec (12 * cellSize) (direction.player ^$ state) 
         -- the blue one tries to get to the back of the player
-        getAttackTarget 2 = playerCoords .-. scaleVec (direction.player ^$ state) (12 * cellSize)
+        getAttackTarget 2 = playerCoords .-. scaleVec (12 * cellSize) (direction.player ^$ state) 
         -- the yellow one tries to move at some distance around the player
         getAttackTarget 3 = if distToPlayer > (16 * 18) then playerCoords else ghostCoords
 

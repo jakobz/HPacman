@@ -22,6 +22,7 @@ testLoad = do
 
 xName name = QName name Nothing Nothing
 
+readIntAttr :: Element -> String -> Int
 readIntAttr tag name = read $ fromJust $ findAttr (xName name) tag :: Int
 
 parseLevel txt = 
@@ -42,10 +43,11 @@ parseLevel txt =
         removeEmptyTiles = filter (\t -> getTileNum t >= 0)
 
         rawTileToWall (x,y,i,_) = ((x,y),i >= 0)
+
         walls = array ((0,0),(w-1,h-1)) $ map rawTileToWall (layers !! 1)
 
         rawTileToSpr (x,y,i,r) = 
-                sprEx "level" (x * tileSize) (y * tileSize)
+                sprEx "level" (toFloatVec $ scaleVec tileSize (x,y))
                 $ sprOptions {tile = Just i, rot = r}
 
         tilesToRender = map rawTileToSpr 
@@ -85,11 +87,11 @@ parseLevel txt =
 loadGame = do
   levelXml <- readFile "data\\level.xml"
   let level = parseLevel levelXml
-      makeCreature x y = Creature (x * cellSize, y * cellSize) (0,0) (0,0) (0,0)
+      makeCreature c = Creature ((scaleVec cellSize c) .+. creatureCenterShift) (0,0) (0,0) (0,0)
       initGame = World { 
         _level = level,
-        _player = makeCreature 1 1,
-        _ghosts = [makeCreature 41 1, makeCreature 1 33, makeCreature 19 17, makeCreature 41 33],
+        _player = makeCreature (1, 1),
+        _ghosts = [makeCreature (41, 1), makeCreature (1, 33), makeCreature (19, 17), makeCreature (41, 33)],
         _food = initialFood ^$ level,
         _playerState = Alive
       }

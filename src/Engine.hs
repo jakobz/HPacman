@@ -36,9 +36,9 @@ sprOptions = SpriteOptions { color = (1, 1, 1), tile = Nothing, rot = 0 }
 
 data SpriteInstance = SpriteInstance { name :: String, x :: Float, y :: Float, options :: SpriteOptions }
 
-spr name x y = SpriteInstance name (fromIntegral x) (fromIntegral y) sprOptions
+spr name (x, y) = SpriteInstance name x y sprOptions
 
-sprEx name x y options = SpriteInstance name (fromIntegral x) (fromIntegral y) options
+sprEx name (x, y) options = SpriteInstance name x y options
 
 
 --run :: [String] -> IO state -> (state -> state) -> (state -> [SpriteInstance]) -> IO()
