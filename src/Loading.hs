@@ -25,7 +25,7 @@ xName name = QName name Nothing Nothing
 readIntAttr :: Element -> String -> Int
 readIntAttr tag name = read $ fromJust $ findAttr (xName name) tag :: Int
 
-portalCoords 0 v = (v .+. (0,0), v .+. (0,3))
+portalCoords 0 v = (v .+. (0,3), v .+. (0,0))
 portalCoords 1 v = (v .+. (0,0), v .+. (3,0))
 portalCoords 2 v = (v .+. (1,3), v .+. (1,0))
 portalCoords 3 v = (v .+. (0,1), v .+. (3,1))
@@ -94,11 +94,11 @@ parseLevel txt =
 loadGame = do
   levelXml <- readFile "data\\level.xml"
   let level = parseLevel levelXml
-      makeCreature c = Creature ((scaleVec cellSize c) .+. creatureCenterShift) (0,0) (0,0) (0,0)
+      makeCreature c = Creature ((scaleVec cellSize c) .+. creatureCenterShiftVec) (0,0) (0,0) (0,0)
       initGame = World { 
         _level = level,
         _player = makeCreature (1, 1),
-        _ghosts = [makeCreature (41, 33), makeCreature (1, 33), makeCreature (19, 17), makeCreature (41, 1)],
+        _ghosts = [], --[makeCreature (41, 33), makeCreature (1, 33), makeCreature (19, 17), makeCreature (41, 1)],
         _food = initialFood ^$ level,
         _playerState = Alive
       }

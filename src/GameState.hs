@@ -3,6 +3,8 @@ module GameState where
 
 import Data.Array
 import Data.Maybe
+import Data.List
+import Data.Function
 import qualified Data.Set as Set
 import Data.Lens.Lazy
 import Data.Lens.Template 
@@ -60,7 +62,8 @@ levelWC = [0 .. levelW - 1]
 levelHC = [0 .. levelH - 1]
 
 creatureSize = cellSize * 3
-creatureCenterShift = (cellSize * 3 / 2, cellSize * 3 / 2)
+creatureCenterShift = cellSize * 3 / 2
+creatureCenterShiftVec = (creatureCenterShift, creatureCenterShift)
 deathAnimationLength = 50 :: Int
 
 -- common helpers 
@@ -95,6 +98,19 @@ truncVec (x,y) = (truncate x, truncate y)
 toFloatVec :: (Int, Int) -> Coord
 toFloatVec (x,y) = (fromIntegral x, fromIntegral y)
 
+normalizeVec :: (Coord) -> (Coord)
+normalizeVec v = scaleVec (1/vecLength v) v
+
+vecNormal :: (Coord) -> (Coord)
+vecNormal (x,y) = normalizeVec (-y, x)
+
+vecAngle (x,y) = atan2 y x
+
+rotateVec a (x,y) =
+    let cs = cos a
+        sn = sin a
+    in (x * cs - y * sn, x * sn + y * cs)
+
 (x1,y1) .*. (x2,y2) = x1 * y2 - y1 * x2
 
 -- algorythm described here: http://stackoverflow.com/questions/563198/how-do-you-detect-where-two-line-segments-intersect
@@ -107,6 +123,11 @@ segmentsIntersects (s1,e1) (s2,e2) =
     in segVecIntersects (p,r) (q,s)
 
 segVecIntersects (p,r) (q,s) = 
+    case segVecIntersectsDetail (p,r) (q,s) True of
+        Just (v, a, b) -> Just (v .+. p)
+        Nothing -> Nothing
+
+segVecIntersectsDetail (p,r) (q,s) includeStarts = 
     let rs = r .*. s
     in if (rs == 0) 
         then Nothing 
@@ -114,10 +135,41 @@ segVecIntersects (p,r) (q,s) =
                 qp = (q .-. p) 
                 t = (qp .*. s) / rs
                 u = (qp .*. r) / rs
-            in if (0 <= t && t <= 1 && 0 <= u && u <= 1) 
-                then Just $ p .+. scaleVec t r
-                else Nothing
+                cmpStart = if includeStarts then (<=) else (<)
+            in if (0 `cmpStart` t && t <= 1 && 0 `cmpStart` u && u <= 1) 
+                then Just $ (scaleVec t r, t, u)
+                else Nothing                
 
+-- passes a vector thru all portals, return a list parts of vector splited by portals
+-- can pass from several portals 
+-- if no portals are on the way - just returns the original vector
+passVecThruPortalImpl state startPoint dir =
+    let getDist (_,dist,_,_,_) = dist
+        intersectPortal (Portal enter@(enterV1, enterV2) exit) =
+            case segVecIntersectsDetail (startPoint, dir) (enterV1, enterV2 .-. enterV1) False of
+                Just (v,a,b) -> Just (v,a,b,enter,exit)
+                Nothing -> Nothing
+
+        intersections = 
+            sortBy (compare `on` getDist) 
+            $ catMaybes
+            $ map intersectPortal (portals ^$ state)
+
+        result = case intersections of
+                    ((enterVec,a,b,(enterV1,enterV2),(exitV1, exitV2)):_) -> 
+                        let enterPortalDir = enterV2 .-. enterV1
+                            exitPortalDir = exitV2 .-. exitV1
+                            exitPoint = exitV1 .+. scaleVec b exitPortalDir
+                            angleChange = vecAngle exitPortalDir - vecAngle enterPortalDir
+                            rotatedDir = rotateVec angleChange dir
+                            outDir = normalizeVec $ rotatedDir
+                            exitVec = (scaleVec (1-a) rotatedDir) 
+                        in if vecLength exitVec == 0 then (startPoint, enterVec, dir) : [(exitPoint, (0,0), outDir)]
+                            else (startPoint, enterVec, normalizeVec dir) : passVecThruPortal state exitPoint exitVec
+                    otherwise -> [(startPoint, dir, normalizeVec dir)]
+    in result
+
+passVecThruPortal state start dir = take 10 $ passVecThruPortalImpl state start dir
 
 directionToVec 0 = (-1, 0)
 directionToVec 1 = ( 0, 1)

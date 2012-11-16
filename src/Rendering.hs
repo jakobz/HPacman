@@ -14,7 +14,7 @@ getDirName (-1, 0) = 'l'
 getDirName (1, 0) = 'r'
 getDirName (0, -1) = 'u'
 getDirName (0, 1) = 'd'
-getDirName (0, 0) = 'r'
+getDirName _ = 'r'
 
 whiteColor = (1,1,1)
 ghostsColors = [(1,0,0), (1,0,1), (0,1,1), (1,0.5,0)]
@@ -27,12 +27,12 @@ getMovePhase (x, y) = "23344311" !! (((truncate $ x + y) `div` 4) `mod` 8)
 renderCreature name c col = [itemSpr name c col]
 
 renderPlayer player@(Creature{_direction = dir}) =
-  let c = (coords ^$ player) .-. creatureCenterShift
+  let c = (coords ^$ player) .-. creatureCenterShiftVec
   in renderCreature ("pacman_" ++ [getDirName dir, getMovePhase c]) c
 
 renderGhost ghost ghostN =
     let dirName = getDirName (direction ^$ ghost)
-        ghostCoords = (coords ^$ ghost) .-. creatureCenterShift .+. (5,2) 
+        ghostCoords = (coords ^$ ghost) .-. creatureCenterShiftVec .+. (5,2) 
         eye1shift 'l' = (-2, 5)
         eye1shift 'r' = (24, 5)
         eye1shift 'u' = (4, 5)
@@ -72,7 +72,9 @@ renderWorld state =
       ++ foodSprs
     	++ renderPlayer (player ^$ state) (playerColor ps)
     	++ (concat $ zipWith renderGhost (ghosts ^$ state) [0..])
-      ++ renderPortals (level ^$ state)
+      -- ++ renderPortals (level ^$ state)
+      ++ testPortals2 state
+
 
 renderGame state = renderWorld $ head $ worldStates ^$ state
 
@@ -82,3 +84,24 @@ renderPortals level =
   let allPortals = portals ^$ level
       portalToLine (Portal (p1,p2) _) = line (1,1,1) [p1, p2]
   in map portalToLine allPortals
+
+
+testPortals state =
+  let lvl = (level ^$ state)
+      playerC = ((coords.player) ^$ state)
+      playerD = scaleVec 1000 ((direction.player) ^$ state)
+      lines = passVecThruPortal lvl playerC (rotateVec (-0.1) playerD)
+              ++ passVecThruPortal lvl playerC (rotateVec (0) playerD)
+              ++ passVecThruPortal lvl playerC (rotateVec (0.1) playerD)
+  in map (\(s,e,_) -> line (1,1,1) [s,s .+. e]) lines
+
+cp = [-creatureCenterShift + 0.5, -(cellSize/2), cellSize/2, creatureCenterShift - 0.5]
+
+pts = [(dx, dy) | dx <- cp, dy <- cp] 
+
+testPortals2 state =
+  let lvl = (level ^$ state)
+      playerC = ((coords.player) ^$ state)
+      lines = concatMap (passVecThruPortal lvl playerC) pts
+  in map (\(s,e,_) -> line (1,1,1) [s,s .+. e]) lines
+

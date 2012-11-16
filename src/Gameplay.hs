@@ -9,6 +9,7 @@ import qualified Data.Set as Set
 import Data.Function (on)
 import qualified Graphics.UI.GLUT as GL
 import Data.List
+import Debug.Trace
 
 -- gameplay
 moveWorld state =
@@ -20,17 +21,31 @@ moveWorld state =
     -- collisions with walls    
     tryMove c dir = 
         let 
-            inWall c = levelWalls ! toLevelCoords (c .-. creatureCenterShift)
-            collisionPoints = [0, cellSize, cellSize * 2, cellSize * 3 - 1]
-            boxInWall c = or [inWall $ (c .+. (dx, dy)) | dx <- collisionPoints, dy <- collisionPoints] 
+            pathSegments = passVecThruPortal (level ^$ state) c dir
+            (outPoint, outVec, outDir) = head $ reverse pathSegments
+            newC = outPoint .+. outVec .+. if (c == outPoint) then (0,0) else outDir
+            newDir = outDir
+
+            --collisionPoints = [0]
+            --collisionPoints = [-(cellSize/2), cellSize/2]
+            collisionPoints = [-creatureCenterShift + 0.5, -(cellSize/2), cellSize/2, creatureCenterShift - 0.5]
+            --inWall _ = False
+            inWall (dx, dy) = let pathSegments = passVecThruPortal (level ^$ state) newC (dx,dy)
+                                  (outPoint, outVec, _) = head $ reverse pathSegments
+                               in levelWalls ! toLevelCoords (outPoint .+. outVec)
+
+
+            --inWall c = levelWalls ! toLevelCoords (c)
+            boxInWall c = or [inWall $ (dx, dy) | dx <- collisionPoints, dy <- collisionPoints] 
             canMove = not $ boxInWall (c .+. dir)
-        in if canMove then Just (wrapCoords $ c .+. dir, dir) else Nothing
+
+        in if canMove then Just (newC, newDir) else Nothing
 
     creaturesCollide = circlesIntersects 40
     collidesWith c = any (creaturesCollide $ c) 
     ghostsCoords = map (coords ^$) $ ghosts ^$ state
     
-    getPlayerState Alive | collidesWith playerCoords ghostsCoords = DeathAnimation deathAnimationLength
+    --getPlayerState Alive | collidesWith playerCoords ghostsCoords = DeathAnimation deathAnimationLength
     getPlayerState Alive | otherwise = Alive
     getPlayerState (DeathAnimation n) | n > 0 = DeathAnimation (n-1)
     getPlayerState (DeathAnimation n) | otherwise = Dead
