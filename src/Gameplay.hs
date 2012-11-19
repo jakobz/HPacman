@@ -70,6 +70,7 @@ moveWorld state =
 
         -- detect collision to another ghosts
         otherGhostsCoords = filter (/=ghostCoords) $ ghostsCoords
+        willCollideAnother dir = or $ map (creaturesCollide (ghostCoords .+. dir)) otherGhostsCoords
 
         -- there are two modes: 
         -- - idle - ghosts move to corners 
@@ -112,7 +113,7 @@ moveWorld state =
             (take 4 $ drop ghostN $ cycle [(1, 0), (0, -1), (-1, 0), (0, 1)])
 
         directionsByPriority = 
-            (filter (/= (-cdx, -cdy)) (desiredDirections ++ backupDirections))
+            (filter (\dir -> dir /= (-cdx, -cdy) && not (willCollideAnother dir)) (desiredDirections ++ backupDirections))
             ++ [(-cdx, -cdy), (0,0)] -- the opposite way and stop should always be the last priories
 
         (newCoords, decision) = firstJust $ map (tryMove ghostCoords) directionsByPriority
