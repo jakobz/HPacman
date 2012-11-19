@@ -26,16 +26,12 @@ moveWorld state =
             newC = outPoint .+. outVec .+. if (c == outPoint) then (0,0) else outDir
             newDir = outDir
 
-            --collisionPoints = [0]
-            --collisionPoints = [-(cellSize/2), cellSize/2]
-            collisionPoints = [-creatureCenterShift + 0.5, -(cellSize/2), cellSize/2, creatureCenterShift - 0.5]
-            --inWall _ = False
             inWall (dx, dy) = let pathSegments = passVecThruPortal (level ^$ state) newC (dx,dy)
                                   (outPoint, outVec, _) = head $ reverse pathSegments
                                in levelWalls ! toLevelCoords (outPoint .+. outVec)
 
+            collisionPoints = [-creatureCenterShift + 0.5, -(cellSize/2), cellSize/2, creatureCenterShift - 0.5]
 
-            --inWall c = levelWalls ! toLevelCoords (c)
             boxInWall c = or [inWall $ (dx, dy) | dx <- collisionPoints, dy <- collisionPoints] 
             canMove = not $ boxInWall (c .+. dir)
 
@@ -45,7 +41,7 @@ moveWorld state =
     collidesWith c = any (creaturesCollide $ c) 
     ghostsCoords = map (coords ^$) $ ghosts ^$ state
     
-    --getPlayerState Alive | collidesWith playerCoords ghostsCoords = DeathAnimation deathAnimationLength
+    getPlayerState Alive | collidesWith playerCoords ghostsCoords = DeathAnimation deathAnimationLength
     getPlayerState Alive | otherwise = Alive
     getPlayerState (DeathAnimation n) | n > 0 = DeathAnimation (n-1)
     getPlayerState (DeathAnimation n) | otherwise = Dead

@@ -10,10 +10,10 @@ import qualified Data.Set as Set
 backSpr = "back"
 point = "point"
 
-getDirName (-1, 0) = 'l'
-getDirName (1, 0) = 'r'
-getDirName (0, -1) = 'u'
-getDirName (0, 1) = 'd'
+getDirName (-1, _) = 'l'
+getDirName (1, _) = 'r'
+getDirName (_, -1) = 'u'
+getDirName (_, 1) = 'd'
 getDirName _ = 'r'
 
 whiteColor = (1,1,1)
@@ -73,7 +73,8 @@ renderWorld state =
     	++ renderPlayer (player ^$ state) (playerColor ps)
     	++ (concat $ zipWith renderGhost (ghosts ^$ state) [0..])
       -- ++ renderPortals (level ^$ state)
-      ++ testPortals2 state
+      -- ++ testPortals state
+      -- ++ testPortals2 state
 
 
 renderGame state = renderWorld $ head $ worldStates ^$ state

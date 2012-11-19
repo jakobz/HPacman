@@ -107,8 +107,8 @@ vecNormal (x,y) = normalizeVec (-y, x)
 vecAngle (x,y) = atan2 y x
 
 rotateVec a (x,y) =
-    let cs = cos a
-        sn = sin a
+    let sn = sin a
+        cs = cos a        
     in (x * cs - y * sn, x * sn + y * cs)
 
 (x1,y1) .*. (x2,y2) = x1 * y2 - y1 * x2
@@ -123,11 +123,11 @@ segmentsIntersects (s1,e1) (s2,e2) =
     in segVecIntersects (p,r) (q,s)
 
 segVecIntersects (p,r) (q,s) = 
-    case segVecIntersectsDetail (p,r) (q,s) True of
+    case segVecIntersectsDetail (p,r) (q,s) of
         Just (v, a, b) -> Just (v .+. p)
         Nothing -> Nothing
 
-segVecIntersectsDetail (p,r) (q,s) includeStarts = 
+segVecIntersectsDetail (p,r) (q,s) = 
     let rs = r .*. s
     in if (rs == 0) 
         then Nothing 
@@ -135,41 +135,41 @@ segVecIntersectsDetail (p,r) (q,s) includeStarts =
                 qp = (q .-. p) 
                 t = (qp .*. s) / rs
                 u = (qp .*. r) / rs
-                cmpStart = if includeStarts then (<=) else (<)
-            in if (0 `cmpStart` t && t <= 1 && 0 `cmpStart` u && u <= 1) 
+            in if (0 <= t && t <= 1 && 0 <= u && u <= 1) 
                 then Just $ (scaleVec t r, t, u)
                 else Nothing                
 
 -- passes a vector thru all portals, return a list parts of vector splited by portals
 -- can pass from several portals 
 -- if no portals are on the way - just returns the original vector
-passVecThruPortalImpl state startPoint dir =
+passVecThruPortalImpl state startPoint dir prevExit =
     let getDist (_,dist,_,_,_) = dist
         intersectPortal (Portal enter@(enterV1, enterV2) exit) =
-            case segVecIntersectsDetail (startPoint, dir) (enterV1, enterV2 .-. enterV1) False of
+            case segVecIntersectsDetail (startPoint, dir) (enterV1, enterV2 .-. enterV1) of
                 Just (v,a,b) -> Just (v,a,b,enter,exit)
                 Nothing -> Nothing
 
         intersections = 
             sortBy (compare `on` getDist) 
+            $ filter (\(_,_,_,enter,_) -> enter /= prevExit)
             $ catMaybes
             $ map intersectPortal (portals ^$ state)
 
         result = case intersections of
-                    ((enterVec,a,b,(enterV1,enterV2),(exitV1, exitV2)):_) -> 
+                    ((enterVec,a,b,(enterV1,enterV2),exit@(exitV1, exitV2)):_) -> 
                         let enterPortalDir = enterV2 .-. enterV1
-                            exitPortalDir = exitV2 .-. exitV1
-                            exitPoint = exitV1 .+. scaleVec b exitPortalDir
-                            angleChange = vecAngle exitPortalDir - vecAngle enterPortalDir
+                            exitPortalDir = exitV1 .-. exitV2
+                            exitPoint = exitV2 .+. scaleVec b exitPortalDir
+                            angleChange = vecAngle exitPortalDir - vecAngle enterPortalDir 
                             rotatedDir = rotateVec angleChange dir
                             outDir = normalizeVec $ rotatedDir
                             exitVec = (scaleVec (1-a) rotatedDir) 
                         in if vecLength exitVec == 0 then (startPoint, enterVec, dir) : [(exitPoint, (0,0), outDir)]
-                            else (startPoint, enterVec, normalizeVec dir) : passVecThruPortal state exitPoint exitVec
+                            else (startPoint, enterVec, normalizeVec dir) : passVecThruPortalImpl state exitPoint exitVec exit
                     otherwise -> [(startPoint, dir, normalizeVec dir)]
     in result
 
-passVecThruPortal state start dir = take 10 $ passVecThruPortalImpl state start dir
+passVecThruPortal state start dir = take 10 $ passVecThruPortalImpl state start dir ((-1003,-1000),(-1000,-1000))
 
 directionToVec 0 = (-1, 0)
 directionToVec 1 = ( 0, 1)

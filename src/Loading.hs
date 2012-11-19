@@ -25,10 +25,10 @@ xName name = QName name Nothing Nothing
 readIntAttr :: Element -> String -> Int
 readIntAttr tag name = read $ fromJust $ findAttr (xName name) tag :: Int
 
-portalCoords 0 v = (v .+. (0,3), v .+. (0,0))
-portalCoords 1 v = (v .+. (0,0), v .+. (3,0))
-portalCoords 2 v = (v .+. (1,3), v .+. (1,0))
-portalCoords 3 v = (v .+. (0,1), v .+. (3,1))
+portalCoords 0 = ((0, cellSize * 3), (0, 0))
+portalCoords 1 = ((0, 0), (cellSize * 3, 0))
+portalCoords 2 = ((cellSize - 1, 0), (cellSize - 1, cellSize * 3))
+portalCoords 3 = ((cellSize * 3, cellSize - 1), (0, cellSize - 1))
 
 parseLevel txt = 
     let root = head $ onlyElems $ parseXML txt
@@ -80,10 +80,10 @@ parseLevel txt =
                 -- We considering only topmost leftmost of each 3 during parsing
                 isVisualExt ((x,y), _) =
                     not (Map.member (x-1, y) enterTiles || Map.member (x, y-1) enterTiles)
-                distinctEnters = filter isVisualExt $ 
-                        Map.toList enterTiles
-                makeEnter (c, rot) = let (c1, c2) = portalCoords rot c
-                                     in (toPixelCoords c1, toPixelCoords c2)
+                distinctEnters = filter isVisualExt $ Map.toList enterTiles
+                makeEnter (c, rot) = let (v1,v2) = portalCoords rot
+                                         fv = toPixelCoords c
+                                     in ((fv .+. v1),(fv .+. v2))
                 enters = map makeEnter distinctEnters
             in [Portal (enters !! 0) (enters !! 1), Portal (enters !! 1) (enters !! 0)]
 
@@ -98,7 +98,7 @@ loadGame = do
       initGame = World { 
         _level = level,
         _player = makeCreature (1, 1),
-        _ghosts = [], --[makeCreature (41, 33), makeCreature (1, 33), makeCreature (19, 17), makeCreature (41, 1)],
+        _ghosts = [makeCreature (41, 33), makeCreature (1, 33), makeCreature (19, 17), makeCreature (41, 1)],
         _food = initialFood ^$ level,
         _playerState = Alive
       }
