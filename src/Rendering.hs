@@ -2,6 +2,7 @@ module Rendering (renderGame) where
 
 import Engine
 import GameState
+import Vectors
 import Data.Lens.Lazy
 import Prelude hiding ((.), id)
 import Control.Category

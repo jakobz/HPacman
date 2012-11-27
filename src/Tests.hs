@@ -3,6 +3,7 @@ module Tests(runTests) where
 import Test.HUnit
 import GameState
 import Control.Monad
+import Vectors
 
 boxCases = [(((0,0),(3,3)),((1,1),(1,1)),True), 
             (((0,0),(1,1)),((1,1),(1,1)),True),

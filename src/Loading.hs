@@ -8,13 +8,13 @@ import Data.Function
 import Text.XML.Light
 import Text.XML.Light.Proc
 import Data.Maybe
-import Engine
 import Data.Lens.Lazy
 import Data.Lens.Template 
 import qualified Data.Set as Set
 import qualified Data.Map as Map
-
+import Engine
 import GameState
+import Vectors
 
 testLoad = do
             file <- readFile "C:\\Coding\\HPacman\\data\\level.xml"

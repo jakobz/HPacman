@@ -1,6 +1,7 @@
 module Gameplay (moveGame, userAction) where 
 
 import GameState
+import Vectors
 import Prelude hiding ((.), id)
 import Data.Lens.Lazy
 import Control.Category
