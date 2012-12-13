@@ -12,7 +12,7 @@ import Data.Lens.Lazy
 import Data.Lens.Template 
 import qualified Data.Set as Set
 import qualified Data.Map as Map
-import Engine
+import Engine.Engine
 import GameState
 import Vectors
 

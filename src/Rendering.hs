@@ -1,6 +1,6 @@
 module Rendering (renderGame) where
 
-import Engine
+import Engine.Engine
 import GameState
 import Vectors
 import Data.Lens.Lazy

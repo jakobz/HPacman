@@ -17,7 +17,7 @@ with its pixels upside down.
 
 
 
-module TGA where
+module Engine.TGA where
 
 import Data.Word ( Word8 )
 import Data.Bits

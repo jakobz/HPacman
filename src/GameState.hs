@@ -8,7 +8,7 @@ import Data.Function
 import qualified Data.Set as Set
 import Data.Lens.Lazy
 import Data.Lens.Template 
-import Engine
+import Engine.Engine
 import Data.Fixed
 import Vectors
 

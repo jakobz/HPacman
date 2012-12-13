@@ -1,7 +1,7 @@
-module Textures (getAndCreateTextures, Tex(Tex)) where
+module Engine.Textures (getAndCreateTextures, Tex(Tex)) where
 
 import Graphics.UI.GLUT
-import TGA (readTga)
+import Engine.TGA (readTga)
 import Data.Word (Word8)
 import Data.Maybe
 import Data.List (isSuffixOf)

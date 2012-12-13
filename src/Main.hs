@@ -1,7 +1,7 @@
 import Loading
 import Gameplay
 import Rendering
-import Engine
+import Engine.Engine
 import Tests
 import Control.Monad
 import Test.HUnit
