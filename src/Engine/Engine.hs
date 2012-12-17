@@ -60,6 +60,7 @@ run app = do
     
     GL.perWindowKeyRepeat $= GL.PerWindowKeyRepeatOff
     GL.displayCallback $= (display engineStateRef)
+    --GL.closeCallback $= Just (closeHandler window)
     GL.idleCallback $= Just (idle engineStateRef)
     GL.keyboardMouseCallback $= Just (keyboardMouse window engineStateRef)
     GL.mainLoop
@@ -150,6 +151,10 @@ initGL = do
 
 
 -- Input
+
+closeHandler window = do
+    GL.destroyWindow window
+    exitWith ExitSuccess
 
 keyboardMouse window _ (GL.Char '\ESC') GL.Down _ _ = do
     GL.destroyWindow window
