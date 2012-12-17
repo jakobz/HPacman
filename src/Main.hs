@@ -11,7 +11,7 @@ main = do
     unless (failures testResults == 0) $ do getChar
                                             error "Tests failed"
                                             return ()
-    run $ newGame { 
+    run $ newApp { 
               load = loadGame,
               move = moveGame,
               render = renderGame,
