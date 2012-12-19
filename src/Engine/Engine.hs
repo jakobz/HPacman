@@ -12,7 +12,7 @@ import Data.HashTable
 import Data.Maybe
 import Debug.Trace
 import Control.Monad
-import Engine.VBO
+import Engine.Batch
 import Engine.Sprites
 
 data App state = App {
@@ -31,7 +31,8 @@ data EngineState appState =
     } 
 
 data Resources = Resources {
-    textures :: HashTable String Tex
+    textures :: HashTable String Tex,
+    testBatch :: Batch
 } 
 
 newApp = App {  
@@ -50,8 +51,11 @@ run app = do
     sprites <- fromList hashString []
     mapM_ (\(name, tex) -> insert sprites name tex) spriteImages
 
+    testBatch <- createBatch
+
     let resources = Resources {
-            textures = sprites
+            textures = sprites,
+            testBatch
         }
  
     initAppState <- load app
@@ -76,7 +80,7 @@ display engineStateRef = do
     let renderItems = render appState
 
     -- GL.viewport $= (GL.Position 0 0, GL.Size 800 600)
-    GL.clearColor $= GL.Color4 1.0 1.0 1.0 (0.0 :: Float)
+    GL.clearColor $= GL.Color4 0.5 0.5 0.5 (0.0 :: Float)
     GL.clear [GL.ColorBuffer]
  
     GL.matrixMode $= GL.Projection
@@ -92,6 +96,12 @@ display engineStateRef = do
     GL.cullFace $= Nothing
 
     mapM_ (renderItem resources) renderItems
+
+    let batch = testBatch resources
+    renderBatch batch
+
+    --btch1 <- createBatch   
+    --renderBatch btch1
 
     GL.swapBuffers
     GL.flush
