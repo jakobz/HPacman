@@ -16,6 +16,7 @@ import Control.Monad
 import Engine.Data
 import Engine.Vbo
 import Engine.RenderItems
+import Engine.Shaders
 
 newApp = App {  
         load = return id,
@@ -33,8 +34,11 @@ run app = do
     sprites <- fromList hashString []
     mapM_ (\(name, tex) -> insert sprites name tex) spriteImages
 
+    shader <- newProgram "data\\Shaders\\SpritesV.hlsl" "data\\Shaders\\SpritesF.hlsl"
+
     let resources = Resources {
-            textures = sprites
+            textures = sprites,
+            shader
         }
  
     initAppState <- load app

@@ -1,6 +1,6 @@
 module Engine.Textures (getAndCreateTextures, Tex(Tex)) where
 
-import Graphics.UI.GLUT
+import Graphics.Rendering.OpenGL
 import Data.Word (Word8)
 import Data.Maybe
 import Data.List (isSuffixOf)

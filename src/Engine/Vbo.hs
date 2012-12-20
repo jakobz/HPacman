@@ -7,6 +7,7 @@ import Debug.Trace
 import Graphics.UI.GLUT (reportErrors)
 import Control.Monad
 import System.Random
+import Engine.Shaders
 
 data Vbo = Vbo {
         buffer :: BufferObject,        
@@ -18,7 +19,6 @@ data Vbo = Vbo {
 
 floatSize = 4
 
---createStaticVbo :: [Int] -> PrimitiveMode -> [[[GLfloat]]] -> Vbo
 createStaticVbo components primitiveMode items = do 
     let itemSize = sum components
     let count = length items
@@ -26,12 +26,12 @@ createStaticVbo components primitiveMode items = do
     let buffOffset n = plusPtr nullPtr (n * floatSize)
     let stride = fromIntegral $ itemSize * floatSize
     let size = count * itemSize * floatSize
-    let descriptors = [VertexArrayDescriptor 2 Float stride $ buffOffset 0,
-                VertexArrayDescriptor 2 Float stride $ buffOffset 2]
+    let comonentsShifts = scanl (+) 0 [2,2,1]
+    let descriptors = zipWith 
+            (\shift size -> VertexArrayDescriptor 2 Float stride $ buffOffset shift) 
+            comonentsShifts components
 
     bufferArray <- newListArray (0, (count * itemSize) - 1) points
-
-    -- TODO
 
     [buffer] <- genObjectNames 1 
     bindBuffer ArrayBuffer $= Just buffer 
@@ -55,7 +55,7 @@ createVbo = do
     -- initialize the buffer
     bindBuffer ArrayBuffer $= Just buffer 
     -- copy data to the buffer from the bufferArray
-    withStorableArray bufferArray (\ptr -> bufferData ArrayBuffer $= (toEnum size, ptr, StreamRead))
+    withStorableArray bufferArray (\ptr -> bufferData ArrayBuffer $= (toEnum size, ptr, StaticDraw))
 
     -- unbind the buffer
     bindBuffer ArrayBuffer $= Nothing
@@ -70,24 +70,21 @@ createVbo = do
             descriptors = []
         } 
 
-renderVbo Vbo{buffer, itemsCount, bufferArray, primitiveMode, descriptors} = 
-    withStorableArray bufferArray $ \arrayPtr -> do    
-        -- test
-        --blend $= Disabled
-        --color $ Color4 1 0 0 (1 :: GLfloat)
-        --textureBinding Texture2D $= Nothing
-        --texture Texture2D $= Disabled
+renderVbo shader Vbo{buffer, itemsCount, bufferArray, primitiveMode, descriptors} = do
+    let attrNames = ["position", "uv"]
 
-        bindBuffer ArrayBuffer $= Just buffer
-        clientState VertexArray $= Enabled
-        clientState TextureCoordArray $= Enabled
-        arrayPointer VertexArray $= descriptors !! 0
-        arrayPointer TextureCoordArray $= descriptors !! 1
+    currentProgram $= Just shader
+    bindBuffer ArrayBuffer $= Just buffer
 
-        drawArrays primitiveMode 0 itemsCount
-        clientState VertexArray $= Disabled
-        clientState TextureCoordArray $= Disabled
-        bindBuffer ArrayBuffer $= Nothing
+    forM_ (zip3 [1..] descriptors attrNames) $ \(n, descriptor, name) -> do
+        attr <- get (attribLocation shader name)
+        vertexAttribPointer attr $= (ToFloat, descriptor)
+        vertexAttribArray attr $= Enabled
 
-        reportErrors
+    drawArrays primitiveMode 0 itemsCount
+
+    bindBuffer ArrayBuffer $= Nothing
+    currentProgram $= Nothing
+
+    reportErrors
 

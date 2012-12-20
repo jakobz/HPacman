@@ -1,10 +1,11 @@
 module Engine.RenderItems where 
 
-import Graphics.UI.GLUT
+import Graphics.Rendering.OpenGL
 import Engine.Vbo
 import Engine.Data
 import Data.HashTable
 import Control.Monad
+import Engine.Shaders
 
 -- Render items construction
 
@@ -23,47 +24,55 @@ prepareBatch items = do
     let toCoords (Vertex2 x y,TexCoord2 tx ty) = [[x,y],[tx,ty]]
     let sprCoords = map toCoords $ concat $ map (fst . spriteToCoords (128, 48)) items
     vbo <- createStaticVbo [2,2] Quads sprCoords
+
+    let textureName = name $ head items
    
-    return $ Batch {
-        textureName = name $ head items,
-        vbo
-    }
+    putStrLn $ "Batch prepared on texture '" ++ textureName ++ "', " ++ show (length sprCoords) ++ " vertexes."
+
+    return $ Batch { textureName, vbo }
 
 -- Rendering
 
+toGLColor :: (Float, Float, Float) -> Color4 GLfloat
+toGLColor (r,g,b) = Color4 (realToFrac r) (realToFrac g) (realToFrac b) 1
+
+toGLVertex :: (Float, Float) -> Vertex2 GLfloat
+toGLVertex (x,y) = Vertex2 (realToFrac x) (realToFrac y) 
+
 renderItem :: Resources -> RenderItem -> IO()
 
-renderItem Resources{textures} Batch{textureName, vbo} = do
+renderItem Resources{textures, shader} Batch{textureName, vbo} = do
     maybeTexture <- Data.HashTable.lookup textures textureName 
     case maybeTexture of 
         Just textureResource@(Tex textureID _ _) -> do
             textureBinding Texture2D $= Just textureID
             texture Texture2D $= Enabled           
-            renderVbo vbo
+            renderVbo shader vbo
 
 renderItem Resources{textures} sprite@(SpriteInstance name _ _ _) = do
         maybeTexture <- Data.HashTable.lookup textures name  
         case maybeTexture of
             Just textureResource@(Tex textureID texW texH) -> do
-                let (coords, (r,g,b)) =
+                let (coords, sprColor) =
                         spriteToCoords (texW, texH) sprite
                 textureBinding Texture2D $= Just textureID
                 texture Texture2D $= Enabled
-                color $ Color4 r g b 1
+                color $ toGLColor sprColor
                 renderPrimitive Quads $ do
                     forM_ coords $ \(c,t) -> do
                         texCoord t
                         vertex   c
             Nothing -> error $ "Can't find texture " ++ name
 
-renderItem textures line@(LineInstance points (r,g,b)) =
-    do color $ Color4 r g b 1
+renderItem textures line@(LineInstance points lineColor) =
+    do color $ toGLColor lineColor
        texture Texture2D $= Disabled
        renderPrimitive LineStrip $ do
-            forM_ points (\(x,y) -> vertex $ Vertex2 x y)
+            forM_ points (\v -> vertex $ toGLVertex v)
 
-spriteToCoords (texW, texH) (SpriteInstance name x y options) =
-    let (tx, ty, w, h) = 
+spriteToCoords (texWF, texHF) (SpriteInstance name sx sy options) =
+    let [x,y,texW,texH] = map realToFrac [sx,sy,texWF,texHF] :: [GLfloat]
+        (tx, ty, w, h) = 
             case tile options of 
                 Just tileN -> let tilesPerLine = (truncate texW) `div` tileSize
                                   tilesLines = (truncate texH) `div` tileSize
