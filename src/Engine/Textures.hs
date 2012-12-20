@@ -1,7 +1,6 @@
 module Engine.Textures (getAndCreateTextures, Tex(Tex)) where
 
 import Graphics.UI.GLUT
-import Engine.TGA (readTga)
 import Data.Word (Word8)
 import Data.Maybe
 import Data.List (isSuffixOf)
@@ -9,11 +8,12 @@ import System.Directory
 import Control.Monad
 import Debug.Trace
 import System.FilePath.Windows
-
 import Foreign.Marshal.Alloc (free)
 
-data Tex = Tex { texture :: TextureObject, width, height :: Float }
-            deriving Show
+import Engine.Data
+import Engine.TGA (readTga)
+
+
 
 getImageFiles dir = getCurrentDirectory
               >>= (\d -> return (d ++ "\\" ++ dir))

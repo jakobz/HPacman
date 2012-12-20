@@ -12,28 +12,10 @@ import Data.HashTable
 import Data.Maybe
 import Debug.Trace
 import Control.Monad
-import Engine.Batch
-import Engine.Sprites
 
-data App state = App {
-        load :: IO state,
-        move :: state -> state,
-        render :: state -> [RenderItem],
-        handleInput ::  GL.Key -> GL.KeyState -> state -> state
-    }
-
-data EngineState appState = 
-    EngineState {
-        tick :: Int,
-        appState :: appState,
-        app :: App appState,
-        resources :: Resources
-    } 
-
-data Resources = Resources {
-    textures :: HashTable String Tex,
-    testBatch :: Batch
-} 
+import Engine.Data
+import Engine.Vbo
+import Engine.RenderItems
 
 newApp = App {  
         load = return id,
@@ -51,11 +33,8 @@ run app = do
     sprites <- fromList hashString []
     mapM_ (\(name, tex) -> insert sprites name tex) spriteImages
 
-    testBatch <- createBatch
-
     let resources = Resources {
-            textures = sprites,
-            testBatch
+            textures = sprites
         }
  
     initAppState <- load app
@@ -97,41 +76,8 @@ display engineStateRef = do
 
     mapM_ (renderItem resources) renderItems
 
-    let batch = testBatch resources
-    renderBatch batch
-
-    --btch1 <- createBatch   
-    --renderBatch btch1
-
     GL.swapBuffers
     GL.flush
-
-renderItem :: Resources -> RenderItem -> IO()
-renderItem Resources{textures} sprite@(SpriteInstance name _ _ _) = do
-        maybeTexture <- Data.HashTable.lookup textures name  
-        case maybeTexture of
-            Just texture@(Tex textureID texW texH) -> do
-                let ((c1,c2,c3,c4), (t1,t2,t3,t4), (r,g,b)) =
-                        spriteToCoords (texW, texH) sprite
-                GL.textureBinding GL.Texture2D $= Just textureID
-                GL.texture GL.Texture2D $= GL.Enabled
-                GL.color $ GL.Color4 r g b 1
-                GL.renderPrimitive GL.Quads $ do
-                    GL.texCoord t1
-                    GL.vertex   c1
-                    GL.texCoord t2
-                    GL.vertex   c2
-                    GL.texCoord t3
-                    GL.vertex   c3
-                    GL.texCoord t4
-                    GL.vertex   c4
-            Nothing -> error $ "Can't find texture " ++ name
-
-renderItem textures line@(LineInstance points (r,g,b)) =
-    do GL.color $ GL.Color4 r g b 1
-       GL.texture GL.Texture2D $= GL.Disabled
-       GL.renderPrimitive GL.LineStrip $ do
-            forM_ points (\(x,y) -> GL.vertex $ GL.Vertex2 x y)
 
 
 -- Move 
