@@ -31,8 +31,6 @@ createStaticVbo components primitiveMode items = do
 
     bufferArray <- newListArray (0, (count * itemSize) - 1) points
 
-    print points
-
     -- TODO
 
     [buffer] <- genObjectNames 1 
