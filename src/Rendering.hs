@@ -69,8 +69,8 @@ renderWorld state =
         foodSprs = [sprEx "level" (scaleVec cellSize $ toFloatVec v) sprOptions{tile = Just 0}
                    | v <- Set.elems $ food ^$ state]
     in 
-      levelTiles
-      ++ foodSprs
+      levelTiles :
+         foodSprs
     	++ renderPlayer (player ^$ state) (playerColor ps)
     	++ (concat $ zipWith renderGhost (ghosts ^$ state) [0..])
       -- ++ renderPortals (level ^$ state)

@@ -9,11 +9,43 @@ import Control.Monad
 import System.Random
 
 data Vbo = Vbo {
-        buffer :: BufferObject,
-        bufferSize :: GLsizei, 
-        bufferArray :: StorableArray Int GLfloat,
-        primitiveMode :: PrimitiveMode
+        buffer :: BufferObject,        
+        itemsCount :: GLsizei, 
+        bufferArray :: StorableArray Int GLfloat,        
+        primitiveMode :: PrimitiveMode,
+        descriptors :: [VertexArrayDescriptor GLfloat]
     }
+
+floatSize = 4
+
+--createStaticVbo :: [Int] -> PrimitiveMode -> [[[GLfloat]]] -> Vbo
+createStaticVbo components primitiveMode items = do 
+    let itemSize = sum components
+    let count = length items
+    let points = concat $ concat items
+    let buffOffset n = plusPtr nullPtr (n * floatSize)
+    let stride = fromIntegral $ itemSize * floatSize
+    let size = count * itemSize * floatSize
+    let descriptors = [VertexArrayDescriptor 2 Float stride $ buffOffset 0,
+                VertexArrayDescriptor 2 Float stride $ buffOffset 2]
+
+    bufferArray <- newListArray (0, (count * itemSize) - 1) points
+
+    print points
+
+    -- TODO
+
+    [buffer] <- genObjectNames 1 
+    bindBuffer ArrayBuffer $= Just buffer 
+    withStorableArray bufferArray (\ptr -> bufferData ArrayBuffer $= (toEnum size, ptr, StreamRead))
+    bindBuffer ArrayBuffer $= Nothing
+    
+    reportErrors
+
+    return Vbo {
+        buffer, itemsCount = fromIntegral count, bufferArray, primitiveMode, descriptors
+    }
+
 
 createVbo = do
     let size = 200000
@@ -34,30 +66,29 @@ createVbo = do
 
     return Vbo {
             buffer,
-            bufferSize = fromIntegral size,
+            itemsCount = fromIntegral size,
             primitiveMode = Quads,
-            bufferArray
-        }
+            bufferArray,
+            descriptors = []
+        } 
 
-renderVbo Vbo{buffer, bufferSize, bufferArray, primitiveMode} = 
+renderVbo Vbo{buffer, itemsCount, bufferArray, primitiveMode, descriptors} = 
     withStorableArray bufferArray $ \arrayPtr -> do    
-        let elemSize = 4
-        let buffOffset n = plusPtr nullPtr (n * elemSize)
-        let stride = 0
-        let vxDesc = VertexArrayDescriptor 2 Float stride $ buffOffset 0
-        
         -- test
-        blend $= Disabled
-        color $ Color4 1 0 0 (1 :: GLfloat)
-        textureBinding Texture2D $= Nothing
-        texture Texture2D $= Disabled
+        --blend $= Disabled
+        --color $ Color4 1 0 0 (1 :: GLfloat)
+        --textureBinding Texture2D $= Nothing
+        --texture Texture2D $= Disabled
 
         bindBuffer ArrayBuffer $= Just buffer
         clientState VertexArray $= Enabled
-        arrayPointer VertexArray $= vxDesc
+        clientState TextureCoordArray $= Enabled
+        arrayPointer VertexArray $= descriptors !! 0
+        arrayPointer TextureCoordArray $= descriptors !! 1
 
-        drawArrays primitiveMode 0 bufferSize
+        drawArrays primitiveMode 0 itemsCount
         clientState VertexArray $= Disabled
+        clientState TextureCoordArray $= Disabled
         bindBuffer ArrayBuffer $= Nothing
 
         reportErrors

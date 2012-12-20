@@ -89,12 +89,14 @@ parseLevel txt =
 
         portals = concatMap extractPortals portalGroups
 
-    in Level tilesToRender walls food portals
+    in (tilesToRender, walls, food, portals)
 
 loadGame = do
   levelXml <- readFile "data\\level.xml"
-  let level = parseLevel levelXml
-      makeCreature c = Creature ((scaleVec cellSize c) .+. creatureCenterShiftVec) (0,0) (0,0) (0,0)
+  let (tiles, walls, food, portals) = parseLevel levelXml      
+  tilesBatch <- prepareBatch tiles
+  let level = Level tilesBatch walls food portals
+  let makeCreature c = Creature ((scaleVec cellSize c) .+. creatureCenterShiftVec) (0,0) (0,0) (0,0)
       initGame = World { 
         _level = level,
         _player = makeCreature (1, 1),

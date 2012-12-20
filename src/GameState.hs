@@ -38,7 +38,7 @@ data Creature = Creature {
             }
 
 data Level = Level {
-    _tiles :: [RenderItem],
+    _tiles :: RenderItem,
     _walls :: Array (Int, Int) Bool,
     _initialFood :: Set.Set (Int, Int),
     _portals :: [Portal]

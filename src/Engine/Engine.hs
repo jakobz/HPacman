@@ -1,7 +1,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 
 module Engine.Engine (newApp, run, spr, sprEx, load, move, render, handleInput,
-                RenderItem(), sprOptions, sprColor, tile, rot, line) where
+                RenderItem(), sprOptions, sprColor, tile, rot, line, prepareBatch) where
 
 import Data.IORef
 import qualified Graphics.UI.GLUT as GL

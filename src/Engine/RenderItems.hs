@@ -18,27 +18,42 @@ line color points = LineInstance points color
 
 tileSize = 16
 
+prepareBatch :: [RenderItem] -> IO RenderItem
+prepareBatch items = do 
+    let toCoords (Vertex2 x y,TexCoord2 tx ty) = [[x,y],[tx,ty]]
+    let sprCoords = map toCoords $ concat $ map (fst . spriteToCoords (128, 48)) items
+    vbo <- createStaticVbo [2,2] Quads sprCoords
+   
+    return $ Batch {
+        textureName = name $ head items,
+        vbo
+    }
+
 -- Rendering
 
 renderItem :: Resources -> RenderItem -> IO()
+
+renderItem Resources{textures} Batch{textureName, vbo} = do
+    maybeTexture <- Data.HashTable.lookup textures textureName 
+    case maybeTexture of 
+        Just textureResource@(Tex textureID _ _) -> do
+            textureBinding Texture2D $= Just textureID
+            texture Texture2D $= Enabled           
+            renderVbo vbo
+
 renderItem Resources{textures} sprite@(SpriteInstance name _ _ _) = do
         maybeTexture <- Data.HashTable.lookup textures name  
         case maybeTexture of
             Just textureResource@(Tex textureID texW texH) -> do
-                let ((c1,c2,c3,c4), (t1,t2,t3,t4), (r,g,b)) =
+                let (coords, (r,g,b)) =
                         spriteToCoords (texW, texH) sprite
                 textureBinding Texture2D $= Just textureID
                 texture Texture2D $= Enabled
                 color $ Color4 r g b 1
                 renderPrimitive Quads $ do
-                    texCoord t1
-                    vertex   c1
-                    texCoord t2
-                    vertex   c2
-                    texCoord t3
-                    vertex   c3
-                    texCoord t4
-                    vertex   c4
+                    forM_ coords $ \(c,t) -> do
+                        texCoord t
+                        vertex   c
             Nothing -> error $ "Can't find texture " ++ name
 
 renderItem textures line@(LineInstance points (r,g,b)) =
@@ -81,4 +96,4 @@ spriteToCoords (texW, texH) (SpriteInstance name x y options) =
                 (Vertex2 (x + w) (y + h)),
                 (Vertex2 (x + w) y)
             )
-    in ((c1,c2,c3,c4), (t1,t2,t3,t4), sprColor options)
+    in ([(c1,t1),(c2,t2),(c3,t3),(c4,t4)], sprColor options)
