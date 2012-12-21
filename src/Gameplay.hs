@@ -23,13 +23,17 @@ moveWorld state =
     tryMove c dir = 
         let 
             pathSegments = passVecThruPortal (level ^$ state) c dir
-            (outPoint, outVec, outDir) = head $ reverse pathSegments
-            newC = outPoint .+. outVec .+. if (c == outPoint) then (0,0) else outDir
-            newDir = outDir
+            (outPoint, outVec, (outDirX, outDirY)) = head $ reverse pathSegments
+            normDir d = if abs d > 0.1 then signum d else 0
+            newDir = (normDir outDirX, normDir outDirY)
+            newC = outPoint .+. outVec .+. if (c == outPoint) then (0,0) else newDir
+
+            pointInWall (x,y) | x >=0, y >=0 = levelWalls ! (x,y)
+            pointInWall _ = False
 
             inWall (dx, dy) = let pathSegments = passVecThruPortal (level ^$ state) newC (dx,dy)
                                   (outPoint, outVec, _) = head $ reverse pathSegments
-                               in levelWalls ! toLevelCoords (outPoint .+. outVec)
+                               in pointInWall $ toLevelCoords (outPoint .+. outVec)
 
             collisionPoints = [-creatureCenterShift + 0.5, -(cellSize/2), cellSize/2, creatureCenterShift - 0.5]
 
@@ -56,7 +60,8 @@ moveWorld state =
             currentTarget = target ^$ creature
             -- try to change direction to one of intended directions
             newDirs = filter (/=(0,0)) $ [(keyX, 0), (0, keyY), oldDir]
-            (newCoords, newDir) = firstJust $ (map (tryMove oldCoords) newDirs) ++ [Just (oldCoords, oldDir)]
+            (newCoords, newDir) = firstJust $ (map (tryMove oldCoords) newDirs) ++ [Just (oldCoords, (0,0))]
+
         in Creature newCoords newDir currentIntention currentTarget
 
     eat = Set.delete $ toLevelCoords $ playerCoords
