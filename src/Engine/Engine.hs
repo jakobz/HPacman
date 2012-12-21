@@ -30,11 +30,11 @@ run app = do
     (progname, _) <- GL.getArgsAndInitialize
     window <- initGL
 
-    spriteImages <- getAndCreateTextures "data"
+    spriteImages <- getAndCreateTextures "images"
     sprites <- fromList hashString []
     mapM_ (\(name, tex) -> insert sprites name tex) spriteImages
 
-    shader <- newProgram "data\\Shaders\\SpritesV.hlsl" "data\\Shaders\\SpritesF.hlsl"
+    shader <- newProgram "shaders\\SpritesV.hlsl" "shaders\\SpritesF.hlsl"
 
     let resources = Resources {
             textures = sprites,
@@ -63,7 +63,7 @@ display engineStateRef = do
     let renderItems = render appState
 
     -- GL.viewport $= (GL.Position 0 0, GL.Size 800 600)
-    GL.clearColor $= GL.Color4 0.5 0.5 0.5 (0.0 :: Float)
+    GL.clearColor $= GL.Color4 0.5 0.5 0.5 (0.0 :: GL.GLfloat)
     GL.clear [GL.ColorBuffer]
  
     GL.matrixMode $= GL.Projection

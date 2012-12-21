@@ -3,6 +3,7 @@ module Engine.Shaders where
 import Control.Monad
 import Graphics.Rendering.OpenGL as GL
 import Graphics.UI.GLUT as GLUT (reportErrors)
+import Data.Text
 
 newProgram :: String -> String -> IO Program
 newProgram v f = do vs <- readAndCompileShader v
@@ -11,6 +12,8 @@ newProgram v f = do vs <- readAndCompileShader v
                     return p
 
 getUniformLocation p s = GL.get $ uniformLocation p s 
+
+infoLogEmpty s = ss == "" || ss == "No errors." where ss = unpack $ strip $ pack s
 
 readAndCompileShader :: Shader s => FilePath -> IO s
 readAndCompileShader filePath = do
@@ -21,7 +24,7 @@ readAndCompileShader filePath = do
   reportErrors
   ok <- get (compileStatus shader)
   infoLog <- get (shaderInfoLog shader)
-  unless (infoLog == "") $
+  unless (infoLogEmpty infoLog) $
     mapM_ putStrLn ["Shader info log '" ++ filePath ++ ":", infoLog, "" ]
   unless ok $ do 
     deleteObjectNames [shader]
@@ -36,7 +39,7 @@ linkShaders vs fs = do
   reportErrors
   ok <- get (linkStatus prog)
   infoLog <- get (programInfoLog prog)
-  unless (infoLog == "") $
+  unless (infoLogEmpty infoLog) $
     mapM_ putStrLn ["Program info log: ", infoLog, ""]
   unless ok $ do deleteObjectNames [prog]
                  ioError (userError "linking failed")  
