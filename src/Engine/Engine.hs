@@ -9,9 +9,11 @@ import Graphics.UI.GLUT (($=))
 import System.Exit
 import Engine.Textures
 import Data.HashTable
-import Data.Maybe
+import Data.IORef
 import Debug.Trace
-import Control.Monad
+import System.FSNotify
+import qualified Filesystem.Path.CurrentOS as Path
+import Control.Concurrent (forkIO)
 
 import Engine.Data
 import Engine.Vbo
@@ -44,13 +46,21 @@ run app = do
     initAppState <- load app
 
     engineStateRef <- newIORef $ EngineState { tick = 0, appState = initAppState, app, resources }
-    
-    GL.perWindowKeyRepeat $= GL.PerWindowKeyRepeatOff
-    GL.displayCallback $= (display engineStateRef)
-    --GL.closeCallback $= Just (closeHandler window)
-    GL.idleCallback $= Just (idle engineStateRef)
-    GL.keyboardMouseCallback $= Just (keyboardMouse window engineStateRef)
-    GL.mainLoop
+
+    let acceptFSEvent (Modified _ _) = True
+        acceptFSEvent _ = False
+
+    withManager $ \manager -> do
+        let dir = Path.decodeString "."
+        putStrLn $ "Watching " ++ show dir
+        watchTree manager dir (const True) (\e -> print e)
+
+        GL.perWindowKeyRepeat $= GL.PerWindowKeyRepeatOff
+        GL.displayCallback $= (display engineStateRef)
+        GL.closeCallback $= Just (closeHandler window)
+        GL.idleCallback $= Just (idle engineStateRef)
+        GL.keyboardMouseCallback $= Just (keyboardMouse window engineStateRef)
+        GL.mainLoop
   
 quit window = do 
     GL.destroyWindow window
@@ -65,7 +75,7 @@ display engineStateRef = do
     -- GL.viewport $= (GL.Position 0 0, GL.Size 800 600)
     GL.clearColor $= GL.Color4 0.5 0.5 0.5 (0.0 :: GL.GLfloat)
     GL.clear [GL.ColorBuffer]
- 
+
     GL.matrixMode $= GL.Projection
     GL.loadIdentity
     GL.ortho 0 800 600 0 (-1.0) (1.0)
@@ -86,22 +96,29 @@ display engineStateRef = do
 
 -- Move 
 
+modifyIORef' ref f = do  -- exists in newer versions of base 
+     x <- readIORef ref 
+     let x' = f x 
+     x' `seq` writeIORef ref x' 
+
 idle engineStateRef = do
     engineState <- GL.get engineStateRef
     let App{move} = app engineState
     time <- GL.get GL.elapsedTime
-    engineStateRef $= moveEngine time engineState move
+    modifyIORef' engineStateRef $ moveEngine time move -- strick application required to avoid stack overflow
     GL.postRedisplay Nothing
 
 
 stepPeriod = 6
 
-moveEngine :: Int -> EngineState engineState -> (engineState -> engineState) -> EngineState engineState
-moveEngine newTick state@EngineState{tick = 0} _ = state{tick=newTick}
-moveEngine newTick state@EngineState{tick, appState} moveApp =
+moveEngine :: Int -> (engineState -> engineState) -> EngineState engineState -> EngineState engineState
+moveEngine newTick _ state@EngineState{tick = 0} = state{tick=newTick}
+moveEngine newTick moveApp state@EngineState{tick, appState} =
     let times = (newTick - tick) `div` stepPeriod 
         newAppState = iterate moveApp appState !! times
-    in state{tick = (tick + stepPeriod * times), appState = newAppState}
+        newAppTick = (tick + stepPeriod * times)
+        newEngineState = state{tick = newAppTick, appState = newAppState} 
+    in newEngineState
 
 initGL = do
     GL.initialDisplayMode $= [GL.DoubleBuffered, GL.RGBAMode]
