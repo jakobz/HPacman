@@ -102,7 +102,7 @@ passVecThruPortalImpl state startPoint dir prevExit =
                             exitVec = (scaleVec (1-a) rotatedDir) 
                         in if vecLength exitVec == 0 then (startPoint, enterVec, dir) : [(exitPoint, (0,0), outDir)]
                             else (startPoint, enterVec, normalizeVec dir) : passVecThruPortalImpl state exitPoint exitVec exit
-                    otherwise -> [(startPoint, dir, normalizeVec dir)]
+                    _ -> [(startPoint, dir, normalizeVec dir)]
     in result
 
 passVecThruPortal state start dir = take 10 $ passVecThruPortalImpl state start dir ((0,0),(0,0))

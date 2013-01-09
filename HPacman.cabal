@@ -26,4 +26,4 @@ Executable HPacman
     system-filepath
   hs-source-dirs: src
   extensions: NamedFieldPuns BangPatterns
-  ghc-options: -Wall -threaded -O2 -rtsopts
+  ghc-options: -W -threaded -O2 -rtsopts

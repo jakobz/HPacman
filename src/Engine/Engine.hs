@@ -9,14 +9,11 @@ import Graphics.UI.GLUT (($=))
 import System.Exit
 import Engine.Textures
 import Data.HashTable
-import Data.IORef
 import Debug.Trace
 import System.FSNotify
 import qualified Filesystem.Path.CurrentOS as Path
-import Control.Concurrent (forkIO)
 
 import Engine.Data
-import Engine.Vbo
 import Engine.RenderItems
 import Engine.Shaders
 
@@ -29,7 +26,7 @@ newApp = App {
 
 run :: App appState -> IO()
 run app = do
-    (progname, _) <- GL.getArgsAndInitialize
+    (_, _) <- GL.getArgsAndInitialize
     window <- initGL
 
     spriteImages <- getAndCreateTextures "images"
@@ -53,7 +50,7 @@ run app = do
     withManager $ \manager -> do
         let dir = Path.decodeString "."
         putStrLn $ "Watching " ++ show dir
-        watchTree manager dir (const True) (\e -> print e)
+        watchTree manager dir acceptFSEvent (\e -> print e)
 
         GL.perWindowKeyRepeat $= GL.PerWindowKeyRepeatOff
         GL.displayCallback $= (display engineStateRef)
@@ -62,12 +59,9 @@ run app = do
         GL.keyboardMouseCallback $= Just (keyboardMouse window engineStateRef)
         GL.mainLoop
   
-quit window = do 
-    GL.destroyWindow window
-    exitWith ExitSuccess 
-
 -- Rendering
-   
+
+display :: IORef (EngineState a) -> IO ()
 display engineStateRef = do 
     EngineState{tick, appState, app = (App {render}), resources} <- GL.get engineStateRef
     let renderItems = render appState
