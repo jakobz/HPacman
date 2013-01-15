@@ -3,23 +3,16 @@ module Engine.Textures (getAndCreateTextures, Tex(Tex)) where
 import Graphics.Rendering.OpenGL
 import Data.Word (Word8)
 import Data.Maybe
-import Data.List (isSuffixOf)
-import System.Directory
-import Control.Monad
+
 import Debug.Trace
 import System.FilePath.Windows
 import Foreign.Marshal.Alloc (free)
 
 import Engine.Data
 import Engine.TGA (readTga)
+import Engine.FileUtils
 
-
-
-getImageFiles dir = getCurrentDirectory
-              >>= (\d -> return (d ++ "\\" ++ dir))
-              >>= getDirectoryContents 
-              >>= filterM (return.isSuffixOf ".tga")
-              >>= mapM (return.(\d -> dir ++ "\\" ++ d))
+getImageFiles dir = getFilesByExt "tga" dir 
 
 -- read a list of images and returns a list of textures
 -- all images are assumed to be in the TGA image format

@@ -3,7 +3,7 @@ module Engine.RenderItems where
 import Graphics.Rendering.OpenGL
 import Engine.Vbo
 import Engine.Data
-import Data.HashTable
+import qualified Data.Map as Map
 import Control.Monad
 import Engine.Shaders
 
@@ -29,7 +29,7 @@ prepareBatch items = do
    
     putStrLn $ "Batch prepared on texture '" ++ textureName ++ "', " ++ show (length sprCoords) ++ " vertexes."
 
-    return $ Batch { textureName, vbo }
+    return $ Batch { textureName, vbo, shaderName = "default" }
 
 -- Rendering
 
@@ -41,16 +41,15 @@ toGLVertex (x,y) = Vertex2 (realToFrac x) (realToFrac y)
 
 renderItem :: Resources -> RenderItem -> IO()
 
-renderItem Resources{textures, shader} Batch{textureName, vbo} = do
-    maybeTexture <- Data.HashTable.lookup textures textureName 
-    case maybeTexture of 
-        Just textureResource@(Tex textureID _ _) -> do
-            textureBinding Texture2D $= Just textureID
-            texture Texture2D $= Enabled           
-            renderVbo shader vbo
+renderItem Resources{textures, shaders} Batch{textureName, vbo, shaderName} = do
+    let Just textureResource@(Tex textureID _ _) = Map.lookup textureName textures  
+    let Just shader = Map.lookup shaderName shaders 
+    textureBinding Texture2D $= Just textureID
+    texture Texture2D $= Enabled           
+    renderVbo shader vbo
 
 renderItem Resources{textures} sprite@(SpriteInstance name _ _ _) = do
-        maybeTexture <- Data.HashTable.lookup textures name  
+        let maybeTexture = Map.lookup name textures
         case maybeTexture of
             Just textureResource@(Tex textureID texW texH) -> do
                 let (coords, sprColor) =

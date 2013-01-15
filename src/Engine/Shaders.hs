@@ -5,11 +5,13 @@ import Graphics.Rendering.OpenGL as GL
 import Graphics.UI.GLUT as GLUT (reportErrors)
 import Data.Text
 
-newProgram :: String -> String -> IO Program
-newProgram v f = do vs <- readAndCompileShader v
-                    fs <- readAndCompileShader f
-                    p <- linkShaders [vs] [fs]
-                    return p
+shadersPath = "shaders\\"
+
+newProgram :: String -> IO Program
+newProgram name = do vs <- readAndCompileShader (shadersPath ++ name ++ ".vs")
+                     fs <- readAndCompileShader (shadersPath ++ name ++ ".fs")
+                     p <- linkShaders [vs] [fs]
+                     return p
 
 getUniformLocation p s = GL.get $ uniformLocation p s 
 

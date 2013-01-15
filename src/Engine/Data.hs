@@ -2,7 +2,7 @@ module Engine.Data where
 
 import qualified Graphics.UI.GLUT as GLU
 import qualified Graphics.Rendering.OpenGL as GL
-import Data.HashTable
+import Data.Map
 import Engine.Vbo
 
 data App state = App {
@@ -21,8 +21,8 @@ data EngineState appState =
     } 
 
 data Resources = Resources {
-    textures :: HashTable String Tex,
-    shader :: GL.Program
+    textures :: Map String Tex,
+    shaders :: Map String GL.Program
 } 
 
 data Tex = Tex { textureObject :: GL.TextureObject, width, height :: Float }
@@ -35,7 +35,8 @@ data RenderItem =
     | LineInstance { points :: [(Float, Float)], lineColor :: Color }
     | Batch { 
         vbo :: Vbo,
-        textureName :: String 
+        textureName :: String,
+        shaderName :: String
       }
 
 data SpriteOptions = SpriteOptions {

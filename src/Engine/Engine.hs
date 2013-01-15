@@ -8,14 +8,16 @@ import qualified Graphics.UI.GLUT as GL
 import Graphics.UI.GLUT (($=))
 import System.Exit
 import Engine.Textures
-import Data.HashTable
+import Data.Map
 import Debug.Trace
 import System.FSNotify
 import qualified Filesystem.Path.CurrentOS as Path
 
 import Engine.Data
+import Engine.FileUtils
 import Engine.RenderItems
 import Engine.Shaders
+
 
 newApp = App {  
         load = return id,
@@ -30,14 +32,13 @@ run app = do
     window <- initGL
 
     spriteImages <- getAndCreateTextures "images"
-    sprites <- fromList hashString []
-    mapM_ (\(name, tex) -> insert sprites name tex) spriteImages
+    let sprites = fromList spriteImages
 
-    shader <- newProgram "shaders\\SpritesV.hlsl" "shaders\\SpritesF.hlsl"
+    shader <- newProgram "default"
 
     let resources = Resources {
             textures = sprites,
-            shader
+            shaders = fromList [("default", shader)]
         }
  
     initAppState <- load app
